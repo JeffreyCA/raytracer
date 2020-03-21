@@ -16,6 +16,7 @@
 using namespace glm;
 using namespace std;
 
+#define GRID_DIM 28
 
 Mesh::Mesh( const std::string& fname )
     : m_vertices()
@@ -65,24 +66,13 @@ Mesh::Mesh( const std::string& fname )
     const vec3 dim = max_point - min_point;
     bounding_box = new NonhierIrregularBox(min_point, dim);
     
-    // grid_dim = 28;
-
-    float cubeRoot = pow(3 * m_faces.size() / (dim.x * dim.y * dim.z), 1 / 3.f); 
-    resolution.x = std::floor(dim.x * cubeRoot); 
-    resolution.x = std::max(1, std::min((int) resolution.x, 128));
-    resolution.y = std::floor(dim.y * cubeRoot); 
-    resolution.y = std::max(1, std::min((int) resolution.y, 128));  
-    resolution.z = std::floor(dim.z * cubeRoot); 
-    resolution.z = std::max(1, std::min((int) resolution.z, 128));  
-
-    resolution = vec3(20, 20, 20);
-    cellDimension = dim / vec3(resolution);
-    num_cells = resolution.x * resolution.y * resolution.z;
-    // cellDimension = dim / (float) grid_dim; 
-    // num_cells = std::pow(grid_dim, 3);
+    // Setup grid acceleration structure params
+    grid_dim = GRID_DIM;
+    cell_dim = dim / (float) grid_dim; 
+    num_cells = std::pow(grid_dim, 3);
 
     for (int i = 0; i < num_cells; i++) {
-        myvector.push_back(vector<Triangle>());
+        grid_vector.push_back(vector<Triangle>());
     }
 
     for (Triangle &triangle: m_faces) {
@@ -99,18 +89,18 @@ Mesh::Mesh( const std::string& fname )
         max.y = std::max(v0.y, std::max(v1.y, v2.y));
         max.z = std::max(v0.z, std::max(v1.z, v2.z));
 
-        int min_cell_x = glm::clamp((int) std::floor((min.x - min_point.x) / cellDimension.x), 0, resolution.x - 1);
-        int min_cell_y = glm::clamp((int) std::floor((min.y - min_point.y) / cellDimension.y), 0, resolution.y - 1);
-        int min_cell_z = glm::clamp((int) std::floor((min.z - min_point.z) / cellDimension.z), 0, resolution.z - 1);
+        int min_cell_x = glm::clamp((int) std::floor((min.x - min_point.x) / cell_dim.x), 0, grid_dim - 1);
+        int min_cell_y = glm::clamp((int) std::floor((min.y - min_point.y) / cell_dim.y), 0, grid_dim - 1);
+        int min_cell_z = glm::clamp((int) std::floor((min.z - min_point.z) / cell_dim.z), 0, grid_dim - 1);
         
-        int max_cell_x = glm::clamp((int) std::floor((max.x - min_point.x) / cellDimension.x), 0, resolution.x - 1);
-        int max_cell_y = glm::clamp((int) std::floor((max.y - min_point.y) / cellDimension.y), 0, resolution.y - 1);
-        int max_cell_z = glm::clamp((int) std::floor((max.z - min_point.z) / cellDimension.z), 0, resolution.z - 1);
+        int max_cell_x = glm::clamp((int) std::floor((max.x - min_point.x) / cell_dim.x), 0, grid_dim - 1);
+        int max_cell_y = glm::clamp((int) std::floor((max.y - min_point.y) / cell_dim.y), 0, grid_dim - 1);
+        int max_cell_z = glm::clamp((int) std::floor((max.z - min_point.z) / cell_dim.z), 0, grid_dim - 1);
 
         for (int x = min_cell_x; x <= max_cell_x; ++x) {
             for (int y = min_cell_y; y <= max_cell_y; ++y) {
                 for (int z = min_cell_z; z <= max_cell_z; ++z) {
-                    myvector[x + resolution.x * (y + resolution.z * z)].push_back(triangle);
+                    grid_vector[x + grid_dim * (y + grid_dim * z)].push_back(triangle);
                 }
             }
         }
@@ -118,7 +108,7 @@ Mesh::Mesh( const std::string& fname )
 
     int sum = 0;
     for (int i = 0; i < num_cells; i++) {
-        sum += myvector[i].size();
+        sum += grid_vector[i].size();
     }
 
     cout <<"sum: " << sum << endl;
@@ -146,27 +136,27 @@ Intersection Mesh::intersect(const Ray &ray) {
     
     vec3 bb_intersection = bounding_box_intersection.get_point();
 
-    int x = glm::clamp((int) std::floor((bb_intersection.x - min_point.x) / cellDimension.x), 0, resolution.x - 1);
-    int y = glm::clamp((int) std::floor((bb_intersection.y - min_point.y) / cellDimension.y), 0, resolution.y - 1);
-    int z = glm::clamp((int) std::floor((bb_intersection.z - min_point.z) / cellDimension.z), 0, resolution.z - 1);
+    int x = glm::clamp((int) std::floor((bb_intersection.x - min_point.x) / cell_dim.x), 0, grid_dim - 1);
+    int y = glm::clamp((int) std::floor((bb_intersection.y - min_point.y) / cell_dim.y), 0, grid_dim - 1);
+    int z = glm::clamp((int) std::floor((bb_intersection.z - min_point.z) / cell_dim.z), 0, grid_dim - 1);
     
     vec3 delta_t;
     vec3 next_crossing_t;
-    delta_t.x = (ray.direction.x < 0 ? -1 : 1) * cellDimension.x / ray.direction.x;
-    delta_t.y = (ray.direction.y < 0 ? -1 : 1) * cellDimension.y / ray.direction.y;
-    delta_t.z = (ray.direction.z < 0 ? -1 : 1) * cellDimension.z / ray.direction.z;
+    delta_t.x = (ray.direction.x < 0 ? -1 : 1) * cell_dim.x / ray.direction.x;
+    delta_t.y = (ray.direction.y < 0 ? -1 : 1) * cell_dim.y / ray.direction.y;
+    delta_t.z = (ray.direction.z < 0 ? -1 : 1) * cell_dim.z / ray.direction.z;
 
     int offset;
     offset = ray.direction.x < 0 ? 0 : 1;
-    next_crossing_t.x = bounding_box_intersection.get_t() + ((x + offset) * cellDimension.x - (bb_intersection.x - min_point.x)) / ray.direction.x;
+    next_crossing_t.x = bounding_box_intersection.get_t() + ((x + offset) * cell_dim.x - (bb_intersection.x - min_point.x)) / ray.direction.x;
     offset = ray.direction.y < 0 ? 0 : 1;
-    next_crossing_t.y = bounding_box_intersection.get_t() + ((y + offset) * cellDimension.y - (bb_intersection.y - min_point.y)) / ray.direction.y;
+    next_crossing_t.y = bounding_box_intersection.get_t() + ((y + offset) * cell_dim.y - (bb_intersection.y - min_point.y)) / ray.direction.y;
     offset = ray.direction.z < 0 ? 0 : 1;
-    next_crossing_t.z = bounding_box_intersection.get_t() + ((z + offset) * cellDimension.z - (bb_intersection.z - min_point.z)) / ray.direction.z;
+    next_crossing_t.z = bounding_box_intersection.get_t() + ((z + offset) * cell_dim.z - (bb_intersection.z - min_point.z)) / ray.direction.z;
     
-    int exit_x = ray.direction.x < 0 ? -1 : resolution.x;
-    int exit_y = ray.direction.y < 0 ? -1 : resolution.y;
-    int exit_z = ray.direction.z < 0 ? -1 : resolution.z;
+    int exit_x = ray.direction.x < 0 ? -1 : grid_dim;
+    int exit_y = ray.direction.y < 0 ? -1 : grid_dim;
+    int exit_z = ray.direction.z < 0 ? -1 : grid_dim;
 
     int step_x = ray.direction.x < 0 ? -1 : 1;
     int step_y = ray.direction.y < 0 ? -1 : 1;
@@ -191,7 +181,7 @@ Intersection Mesh::intersect(const Ray &ray) {
     }
 
     while (true) {
-        cur_cell = myvector[x + resolution.x * (y + resolution.z * z)];
+        cur_cell = grid_vector[x + grid_dim * (y + grid_dim * z)];
         float cross_t;
         if (cur == 0) {
             cross_t = next_crossing_t.x;
@@ -223,7 +213,6 @@ Intersection Mesh::intersect(const Ray &ray) {
             break;
         }
         
-        // cout << "next cross: " << next_crossing_t << endl;
         if (next_crossing_t.x < next_crossing_t.y) {
             if (next_crossing_t.x < next_crossing_t.z) {
                 x += step_x;
@@ -260,30 +249,6 @@ Intersection Mesh::intersect(const Ray &ray) {
     }
 
     return intersection;
-    /*
-    Intersection intersection = Intersection::NonIntersection(ray);
-    // Compute nearest intersection point with mesh
-    for (const Triangle &triangle: m_faces) {
-        vec3 &v0 = m_vertices[triangle.v1];
-        vec3 &v1 = m_vertices[triangle.v2];
-        vec3 &v2 = m_vertices[triangle.v3];
-
-        const vec3 bary = intersect_ray_triangle(ray, v0, v1, v2);
-        const float beta = bary.x;
-        const float gamma = bary.y;
-        const float t = bary.z;
-
-        // Intersection point should not be behind ray origin
-        if (t > 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1) {			
-            if (!intersection.is_hit() || t < intersection.get_t()) {
-                const vec3 normal = cross(v1 - v0, v2 - v0);
-                intersection = Intersection(ray, normal, t, true);
-            }
-        }
-    }
-    
-    return intersection;
-    */
 }
 
 vec3 Mesh::intersect_ray_triangle(const Ray &ray, vec3 &P0, vec3 &P1, vec3 &P2) {

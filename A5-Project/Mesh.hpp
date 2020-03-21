@@ -47,11 +47,10 @@ private:
     int num_cells;
 
     int grid_dim;
-    glm::vec3 cellDimension;
+    glm::vec3 cell_dim;
     glm::vec3 min_point;
     glm::vec3 max_point;
-    glm::ivec3 resolution;
-    std::vector<std::vector<Triangle>> myvector;
+    std::vector<std::vector<Triangle>> grid_vector;
 
     glm::vec3 intersect_ray_triangle(const Ray &ray, glm::vec3 &P0, glm::vec3 &P1, glm::vec3 &P2);
     friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);

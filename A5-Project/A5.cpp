@@ -28,7 +28,7 @@ static const int BG_HUE = 213;
 
 vec3 hsv_to_rgb(int H, float S, float V);
 struct Context;
-void A4_Render(SceneNode * root, Image & image, const vec3 &look_from, const vec3 &look_at, const vec3 &up, double fovy, const vec3 & ambient, const list<Light *> &lights);
+void A5_Render(SceneNode * root, Image & image, const vec3 &look_from, const vec3 &look_at, const vec3 &up, double fovy, const vec3 & ambient, const list<Light *> &lights);
 vec3 trace(Context &context, uint x, uint y, float x_offset, float y_offset);
 vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits);
 vec3 background_colour(Context &context, uint x, uint y);
@@ -50,7 +50,7 @@ struct Context {
     Context(SceneNode *root, const mat4 &TSRT, const vec3 &look_from, const vec3 &ambient, const list<Light *> &lights, float nx, float ny): root(root), TSRT(TSRT), look_from(look_from), ambient(ambient), lights(lights), nx(nx), ny(ny) {}
 };
 
-void A4_Render(
+void A5_Render(
     // What to render  
     SceneNode *root,
 
@@ -67,7 +67,7 @@ void A4_Render(
     const vec3 &ambient,
     const list<Light *> &lights
 ) {
-  cout << "Calling A4_Render(\n" <<
+  cout << "Calling A5_Render(\n" <<
           "\t" << *root <<
           "\t" << "Image(width:" << image.width() << ", height:" << image.height() << ")\n"
           "\t" << "eye (look from):  " << to_string(look_from) << endl <<
