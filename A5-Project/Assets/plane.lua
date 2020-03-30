@@ -61,6 +61,6 @@ white_light = gr.light({0, 0, -5}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0})
 white_light_2 = gr.light({-1.0, 0, 0}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0})
 
 --           root, image name, width, height, lookFrom, lookAt, up, fov, ambient, lights
-gr.render(scene_root, 'simple.png', 750, 750,
+gr.render(scene_root, 'plane.png', 750, 750,
 	  {0.0, 0.0, 0.0}, {0, 0, -20}, {0, 1, 0}, 50,
 	  {0.3, 0.3, 0.3}, {white_light})
