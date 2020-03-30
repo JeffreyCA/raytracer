@@ -196,6 +196,24 @@ int gr_cube_cmd(lua_State* L)
   return 1;
 }
 
+// Create a non-hierarchical Plane node
+extern "C"
+int gr_nh_plane_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
+
+  const char* name = luaL_checkstring(L, 1);
+  data->node = new GeometryNode(name, new NonhierPlane());
+
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
 // Create a non-hierarchical Sphere node
 extern "C"
 int gr_nh_sphere_cmd(lua_State* L)
@@ -523,6 +541,7 @@ static const luaL_Reg grlib_functions[] = {
   {"material", gr_material_cmd},
   // New for assignment 4
   {"cube", gr_cube_cmd},
+  {"nh_plane", gr_nh_plane_cmd},
   {"nh_sphere", gr_nh_sphere_cmd},
   {"nh_box", gr_nh_box_cmd},
   {"mesh", gr_mesh_cmd},

@@ -16,15 +16,20 @@
 #include <future>
 #include <thread>
 #include <mutex>
+#include <random>
 
 using namespace std;
 using namespace glm;
 
 static const float EPSILON = 0.0001f;
 static const float SHADOW_BIAS = 0.0001f;
-static const int MAX_HIT_THRESHOLD = 5;
+static const int MAX_HIT_THRESHOLD = 2;
 static const float d = 10.0f;
 static const int BG_HUE = 213;
+
+static random_device rd;
+static default_random_engine mt(rd());
+static uniform_real_distribution<float> dist(0.0f, 1.0f);
 
 vec3 hsv_to_rgb(int H, float S, float V);
 struct Context;
@@ -133,15 +138,15 @@ void A5_Render(
                 }
                 
                 vec3 colour = trace(c, x, y, 0, 0);
-                colour += trace(c, x, y, -0.5f, -0.5f);
-                colour += trace(c, x, y, -0.5f, 0);
-                colour += trace(c, x, y, -0.5f, 0.5f);
-                colour += trace(c, x, y, 0, -0.5f);
-                colour += trace(c, x, y, 0, 0.5f);
-                colour += trace(c, x, y, 0.5f, -0.5f);
-                colour += trace(c, x, y, 0.5f, 0);
-                colour += trace(c, x, y, 0.5f, 0.5f);
-                colour /= 9.0f;
+                // colour += trace(c, x, y, -0.5f, -0.5f);
+                // colour += trace(c, x, y, -0.5f, 0);
+                // colour += trace(c, x, y, -0.5f, 0.5f);
+                // colour += trace(c, x, y, 0, -0.5f);
+                // colour += trace(c, x, y, 0, 0.5f);
+                // colour += trace(c, x, y, 0.5f, -0.5f);
+                // colour += trace(c, x, y, 0.5f, 0);
+                // colour += trace(c, x, y, 0.5f, 0.5f);
+                // colour /= 9.0f;
                 image(x, y, 0) = (double)colour.x;
                 image(x, y, 1) = (double)colour.y;
                 image(x, y, 2) = (double)colour.z;
@@ -301,6 +306,32 @@ Ray get_reflected_ray(const vec3 &inter_point, const vec3 &direction, const vec3
     return Ray(inter_point, direction - 2 * dot(direction, normal) * normal);
 }
 
+Ray get_perturbed_ray(const Ray &ray, float shininess) {
+    vec3 direction = ray.direction;
+    vec3 U, V;
+
+    // Get the basis vectors for the square
+    // Get the basis vectors for the square of size <glossiness>x<glossiness>
+    if(std::abs(direction[2]) > std::abs(direction[0]) && std::abs(direction[2]) > std::abs(direction[1])) {
+        U = glm::vec3(-direction[1], direction[0], 0.0);
+    }
+    else if(std::abs(direction[1]) > std::abs(direction[0])) {
+        U = glm::vec3(-direction[2], 0.0, direction[0]);
+    }
+    else{
+        U = glm::vec3(0.0, -direction[2], direction[1]);
+    }
+    U = glm::normalize(U);
+    V = glm::normalize(glm::cross(direction, U));
+    
+    float a = 1.0f / (1.0f + (float) shininess);
+    float i = -a/2.0f + dist(mt) * a;
+    float j = -a/2.0f + dist(mt) * a;
+
+    vec3 glossy_direction = ray.direction + i * U + j * V;
+    return Ray(ray.origin, glossy_direction);
+}
+
 /*
  * Return the diffuse and specular colour components at the intersection point with the object material.
  */
@@ -350,10 +381,17 @@ vec3 compute_reflection(Context &context, const Ray &ray, const Intersection &in
     vec3 colour = vec3(0, 0, 0);
 
     if (max_hits < MAX_HIT_THRESHOLD) {
-        max_hits += 1;
         const vec3 biased_p = intersection.get_point() + SHADOW_BIAS * intersection.get_N();
         const Ray reflected_ray = get_reflected_ray(biased_p, ray.direction, intersection.get_N());
-        colour += context.ambient * mat->m_ks * ray_colour(context, reflected_ray, x, y, max_hits);
+        int ray_samples = 10;
+
+        while (ray_samples > 0) {
+            const Ray perturbed = get_perturbed_ray(reflected_ray, mat->m_shininess);
+            colour += context.ambient * mat->m_ks * ray_colour(context, perturbed, x, y, max_hits + 1);
+            ray_samples--;
+        }
+
+        colour /= 10.0f;
     }
 
     return colour;

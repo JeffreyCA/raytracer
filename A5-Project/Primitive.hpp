@@ -31,6 +31,13 @@ public:
   virtual Intersection intersect(const Ray &ray) override;
 };
 
+class NonhierPlane : public Primitive {
+public:
+  NonhierPlane() {}
+  virtual ~NonhierPlane();
+  virtual Intersection intersect(const Ray &ray) override;
+};
+
 class NonhierSphere : public Primitive {
 public:
   NonhierSphere(const glm::vec3& pos, double radius)

@@ -38,6 +38,30 @@ Intersection Cube::intersect(const Ray &ray) {
     return base_shape->intersect(ray);
 }
 
+NonhierPlane::~NonhierPlane() {}
+
+Intersection NonhierPlane::intersect(const Ray &ray) {
+    const vec3 point = vec3(0, 0, 0);
+    const vec3 normal = vec3(0, 0, 1.0f);
+    
+    float numerator = -dot(normal, ray.origin);
+    float denominator = dot(normal, ray.direction);
+
+    if (fabs(denominator) < EPSILON) {
+        return Intersection::NonIntersection(ray);
+    }
+
+    float t = numerator / denominator;
+    if (t > 0) {
+        vec3 p_on_plane = ray.get_point(t);
+        if (p_on_plane.x >= -0.5 && p_on_plane.x <= 0.5 && p_on_plane.y >= -0.5 && p_on_plane.y <= 0.5) {
+            return Intersection(ray, normal, t, t > 0);
+        }
+    }
+
+    return Intersection::NonIntersection(ray);
+}
+
 NonhierSphere::~NonhierSphere() {}
 
 Intersection NonhierSphere::intersect(const Ray &ray) {
