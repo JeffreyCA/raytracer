@@ -388,7 +388,7 @@ int gr_material_cmd(lua_State* L)
   
   data->material = new PhongMaterial(glm::vec3(kd[0], kd[1], kd[2]),
                                      glm::vec3(ks[0], ks[1], ks[2]),
-                                     shininess, false);
+                                     shininess, 0.0f, false);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
@@ -410,10 +410,11 @@ int gr_mirror_material_cmd(lua_State* L)
   get_tuple(L, 2, ks, 3);
 
   double shininess = luaL_checknumber(L, 3);
-  
+  float glossiness = luaL_checknumber(L, 4);
+
   data->material = new PhongMaterial(glm::vec3(kd[0], kd[1], kd[2]),
                                      glm::vec3(ks[0], ks[1], ks[2]),
-                                     shininess, true);
+                                     shininess, glossiness, true);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);

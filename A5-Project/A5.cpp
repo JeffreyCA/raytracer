@@ -139,15 +139,15 @@ void A5_Render(
                 }
                 
                 vec3 colour = trace(c, x, y, 0, 0);
-                // colour += trace(c, x, y, -0.5f, -0.5f);
-                // colour += trace(c, x, y, -0.5f, 0);
-                // colour += trace(c, x, y, -0.5f, 0.5f);
-                // colour += trace(c, x, y, 0, -0.5f);
-                // colour += trace(c, x, y, 0, 0.5f);
-                // colour += trace(c, x, y, 0.5f, -0.5f);
-                // colour += trace(c, x, y, 0.5f, 0);
-                // colour += trace(c, x, y, 0.5f, 0.5f);
-                // colour /= 9.0f;
+                colour += trace(c, x, y, -0.5f, -0.5f);
+                colour += trace(c, x, y, -0.5f, 0);
+                colour += trace(c, x, y, -0.5f, 0.5f);
+                colour += trace(c, x, y, 0, -0.5f);
+                colour += trace(c, x, y, 0, 0.5f);
+                colour += trace(c, x, y, 0.5f, -0.5f);
+                colour += trace(c, x, y, 0.5f, 0);
+                colour += trace(c, x, y, 0.5f, 0.5f);
+                colour /= 9.0f;
                 image(x, y, 0) = (double)colour.x;
                 image(x, y, 1) = (double)colour.y;
                 image(x, y, 2) = (double)colour.z;
@@ -308,28 +308,28 @@ Ray get_reflected_ray(const vec3 &inter_point, const vec3 &direction, const vec3
     return Ray(inter_point, direction - 2 * dot(direction, normal) * normal);
 }
 
-Ray get_perturbed_ray(const Ray &ray, float shininess) {
-    vec3 direction = ray.direction;
-    vec3 U, V;
-
-    // Get the basis vectors for the square
-    if(std::abs(direction[2]) > std::abs(direction[0]) && std::abs(direction[2]) > std::abs(direction[1])) {
-        U = glm::vec3(-direction[1], direction[0], 0.0);
-    }
-    else if(std::abs(direction[1]) > std::abs(direction[0])) {
-        U = glm::vec3(-direction[2], 0.0, direction[0]);
-    }
-    else{
-        U = glm::vec3(0.0, -direction[2], direction[1]);
-    }
-    U = glm::normalize(U);
-    V = glm::normalize(glm::cross(direction, U));
+Ray get_perturbed_ray(const Ray &ray, float glossiness) {
+    const vec3 direction = ray.direction;
+    const vec3 w = normalize(direction);
+    const vec3 w_abs = vec3(fabs(w.x), fabs(w.y), fabs(w.z));
     
-    float a = 1.0f / (1.0f + (float) shininess);
-    float i = -a/2.0f + dist(mt) * a;
-    float j = -a/2.0f + dist(mt) * a;
+    // Choose any t not collinear with w
+    vec3 t;
+    if (w_abs.x <= w_abs.y && w_abs.x <= w_abs.z) {
+        t = vec3(1.0f, w.y, w.z);
+    } else if (w_abs.y <= w_abs.x && w_abs.y <= w_abs.z) {
+        t = vec3(w.x, 1.0f, w.z);
+    } else {
+        t = vec3(w.x, w.y, 1.0f);
+    }
 
-    vec3 glossy_direction = ray.direction + i * U + j * V;
+    const vec3 u = normalize(cross(t, w));
+    const vec3 v = cross(w, u);
+
+    const float i = -glossiness / 2.0f + dist(mt) * glossiness;
+    const float j = -glossiness / 2.0f + dist(mt) * glossiness;
+
+    const vec3 glossy_direction = ray.direction + i * u + j * v;
     return Ray(ray.origin, glossy_direction);
 }
 
@@ -388,7 +388,7 @@ vec3 compute_reflection(Context &context, const Ray &ray, const Intersection &in
         int ray_samples = 20;
 
         while (ray_samples > 0) {
-            const Ray perturbed_ray = get_perturbed_ray(reflected_ray, mat->m_shininess);
+            const Ray perturbed_ray = get_perturbed_ray(reflected_ray, mat->m_glossiness);
             colour += mat->m_ks * ray_colour(context, perturbed_ray, x, y, max_hits + 1);
             ray_samples--;
         }

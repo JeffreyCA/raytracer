@@ -1,9 +1,10 @@
 white_mat = gr.material({1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, 1)
+dim_white_mat = gr.material({0.8, 0.8, 0.8}, {0.0, 0.0, 0.0}, 1)
 red_mat = gr.material({1.0, 0.0, 0.0}, {0.5, 0.5, 0.5}, 1)
 blue_mat = gr.material({0.0, 0.0, 1.0}, {0.5, 0.5, 0.5}, 1)
 black_mat = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
 gold_mat = gr.material({0.9, 0.8, 0.4}, {0.8, 0.8, 0.4}, 50)
-mirror_mat = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 100)
+mirror_mat = gr.mirror_material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 100, 10)
 
 mat1 = gr.material({0.7, 1.0, 0.7}, {0.5, 0.7, 0.5}, 50)
 mat2 = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
@@ -11,7 +12,6 @@ mat3 = gr.material({1.0, 0.6, 0.1}, {0.5, 0.7, 0.5}, 50)
 
 scene_root = gr.node('root')
 
-behind_plane_z = 10.0
 box_height = 10.0
 box_width = 10.0
 box_length = 20.0
@@ -21,7 +21,13 @@ back_plane = gr.nh_plane('back_plane')
 back_plane:scale(box_width, box_height, 1)
 back_plane:translate(0, 0, -box_length)
 scene_root:add_child(back_plane)
-back_plane:set_material(white_mat)
+back_plane:set_material(dim_white_mat)
+
+behind_plane = gr.nh_plane('behind_plane')
+behind_plane:scale(box_width, box_height, 1)
+behind_plane:translate(0, 0, fudge)
+scene_root:add_child(behind_plane)
+behind_plane:set_material(white_mat)
 
 top_plane = gr.nh_plane('top_plane')
 top_plane:scale(box_width, box_length, 1)
@@ -53,14 +59,16 @@ right_plane:set_material(red_mat)
 
 s = gr.sphere('s')
 scene_root:add_child(s)
-s:set_material(gold_mat)
-s:scale(0.5, 0.5, 0.5)
-s:translate(-1.0, -1.8, -9.0)
+s:set_material(mirror_mat)
+s:scale(0.7, 0.7, 0.7)
+s:translate(-1.0, -3.5, -12.0)
 
-white_light = gr.light({0, 0, -5}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0})
-white_light_2 = gr.light({-1.0, 0, 0}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0})
+light = gr.light({0, 4.0, -box_length / 2.0 - 2.0}, {0.5, 0.5, 0.5}, {5, 2, 0})
+light_2 = gr.light({-1.0, 2.0, -5}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0})
 
---           root, image name, width, height, lookFrom, lookAt, up, fov, ambient, lights
+ambient = 0.3
+
+-- root, image name, width, height, lookFrom, lookAt, up, fov, ambient, lights
 gr.render(scene_root, 'plane.png', 750, 750,
-	  {0.0, 0.0, 0.0}, {0, 0, -20}, {0, 1, 0}, 50,
-	  {0.3, 0.3, 0.3}, {white_light})
+	  {0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
+	  {ambient, ambient, ambient}, {light_2})
