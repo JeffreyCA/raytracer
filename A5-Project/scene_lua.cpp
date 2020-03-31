@@ -388,7 +388,32 @@ int gr_material_cmd(lua_State* L)
   
   data->material = new PhongMaterial(glm::vec3(kd[0], kd[1], kd[2]),
                                      glm::vec3(ks[0], ks[1], ks[2]),
-                                     shininess);
+                                     shininess, false);
+
+  luaL_newmetatable(L, "gr.material");
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Create a Mirror Material
+extern "C"
+int gr_mirror_material_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_material_ud* data = (gr_material_ud*)lua_newuserdata(L, sizeof(gr_material_ud));
+  data->material = 0;
+  
+  double kd[3], ks[3];
+  get_tuple(L, 1, kd, 3);
+  get_tuple(L, 2, ks, 3);
+
+  double shininess = luaL_checknumber(L, 3);
+  
+  data->material = new PhongMaterial(glm::vec3(kd[0], kd[1], kd[2]),
+                                     glm::vec3(ks[0], ks[1], ks[2]),
+                                     shininess, true);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
@@ -539,6 +564,7 @@ static const luaL_Reg grlib_functions[] = {
   {"sphere", gr_sphere_cmd},
   {"joint", gr_joint_cmd},
   {"material", gr_material_cmd},
+  {"mirror_material", gr_mirror_material_cmd},
   // New for assignment 4
   {"cube", gr_cube_cmd},
   {"nh_plane", gr_nh_plane_cmd},

@@ -21,6 +21,7 @@
 using namespace std;
 using namespace glm;
 
+static const vec3 ZERO_VEC = vec3(0.0f);
 static const float EPSILON = 0.0001f;
 static const float SHADOW_BIAS = 0.0001f;
 static const int MAX_HIT_THRESHOLD = 2;
@@ -38,7 +39,7 @@ vec3 trace(Context &context, uint x, uint y, float x_offset, float y_offset);
 vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits);
 vec3 background_colour(Context &context, uint x, uint y);
 Intersection hit(const Ray &ray, SceneNode *root);
-float direct_light(SceneNode *root, const vec3 &inter_point, const vec3 &light_point);
+bool is_light_path_blocked(SceneNode *root, const vec3 &inter_point, const vec3 &light_point);
 Ray get_reflected_ray(const vec3 &inter_point, const vec3 &direction, const vec3 &normal);
 vec3 compute_diffuse_specular(Context &context, const Intersection &intersection, PhongMaterial *mat);
 vec3 compute_reflection(Context &context, const Ray &ray, const Intersection &intersection, PhongMaterial *mat, uint x, uint y, int max_hits);
@@ -218,9 +219,14 @@ vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits) 
         PhongMaterial *material = intersection.get_material();
         vec3 colour = material->m_kd * context.ambient;
         // Add diffuse and specular components
-        colour += compute_diffuse_specular(context, intersection, material); 
+        if (material->m_kd != ZERO_VEC) {
+            colour += compute_diffuse_specular(context, intersection, material); 
+        }
+        
         // Add mirror reflection component
-        colour += compute_reflection(context, ray, intersection, material, x, y, max_hits);
+        if (material->m_mirror) {
+            colour += compute_reflection(context, ray, intersection, material, x, y, max_hits);
+        }
         return colour;
     } else if (max_hits > 0) {
         // Currently processing reflection ray, do not return bg colour or else we get some of the background colour throughout entire scene.
@@ -288,15 +294,11 @@ Intersection hit(const Ray &ray, SceneNode *root) {
 /*
  * Takes in a shadow ray and location of a light source and returns 0 if an object is in the way, otherwise 1.
  */
-float direct_light(SceneNode *root, const vec3 &inter_point, const vec3 &light_point) {
+bool is_light_path_blocked(SceneNode *root, const vec3 &inter_point, const vec3 &light_point) {
     const Ray ray = Ray(inter_point, light_point - inter_point);
     const Intersection intersection = root->intersect(ray);
-    
-    if (intersection.is_hit()) {
-        return 0;
-    } else {
-        return 1;
-    }
+
+    return intersection.is_hit() && intersection.get_t() < 1.0f;
 }
 
 /*
@@ -311,7 +313,6 @@ Ray get_perturbed_ray(const Ray &ray, float shininess) {
     vec3 U, V;
 
     // Get the basis vectors for the square
-    // Get the basis vectors for the square of size <glossiness>x<glossiness>
     if(std::abs(direction[2]) > std::abs(direction[0]) && std::abs(direction[2]) > std::abs(direction[1])) {
         U = glm::vec3(-direction[1], direction[0], 0.0);
     }
@@ -342,33 +343,34 @@ vec3 compute_diffuse_specular(Context &context, const Intersection &intersection
 
     for (const Light *light: context.lights) {
         const vec3 light_pos = light->position;
-        Ray ray = Ray(point, light_pos - point);
-        vec3 point_light_direction = ray.get_normalized_direction();
-        float n_light_angle = dot(normal, point_light_direction);
-        
-        if (n_light_angle > 0) {
-            // Move intersection point up along normal to avoid shadow acne
-            const vec3 biased_p = point + SHADOW_BIAS * normal;
-            const float dist = fabs(distance(biased_p, light_pos));
-            const float shadow_contribution = direct_light(context.root, biased_p, light_pos);
-            // Compute light attenuation using light source's quadratic attenuation parameters
-            const float light_attenuation = std::min(1.0, 
-                1.0 / (light->falloff[0] + light->falloff[1] * dist + light->falloff[2] * pow(dist, 2)));
+        // Move intersection point up along normal to avoid shadow acne
+        const vec3 biased_p = point + SHADOW_BIAS * normal;
+        const bool direct_light_path = !is_light_path_blocked(context.root, biased_p, light_pos);
 
+        // Only add colour components if no object is in the way between light source and intersection point
+        if (direct_light_path) {
+            // Blinn-Phong diffuse
+            const Ray ray = Ray(point, light_pos - point);
+            const vec3 point_light_direction = ray.get_normalized_direction();
+            const float diffuse_term = std::max(0.0f, dot(normal, point_light_direction));
+
+            // Compute light attenuation using light source's quadratic attenuation parameters
+            const float dist = fabs(distance(biased_p, light_pos));
+            const float light_attenuation = 
+                std::min(1.0, 1.0 / (light->falloff[0] + 
+                                     light->falloff[1] * dist +
+                                     light->falloff[2] * dist * dist));
+
+            // Blinn-Phong specular
             const vec3 V = normalize(context.look_from - point);
             const vec3 L = normalize(light_pos - point);
-            // Blinn-Phong
             const vec3 H = normalize(L + V);
-            const float n_h_angle = dot(normal, H);
-            const float phong = std::max(0.0f, (float) std::pow(n_h_angle, mat->m_shininess));
+            const float specular_term = std::max(0.0f, (float) std::pow(dot(normal, H), mat->m_shininess));
 
-            // Only add colour components if no object is in the way between light source and intersection point
-            if (shadow_contribution > 0.0f) {
-                // Diffuse
-                colour += light_attenuation * n_light_angle * light->colour * mat->m_kd;
-                // Specular
-                colour += phong * light->colour * mat->m_ks;
-            }
+            // Diffuse
+            colour += mat->m_kd * light->colour * diffuse_term * light_attenuation;
+            // Specular
+            colour += mat->m_ks * light->colour * specular_term;
         }
     }
     return colour;
@@ -383,15 +385,15 @@ vec3 compute_reflection(Context &context, const Ray &ray, const Intersection &in
     if (max_hits < MAX_HIT_THRESHOLD) {
         const vec3 biased_p = intersection.get_point() + SHADOW_BIAS * intersection.get_N();
         const Ray reflected_ray = get_reflected_ray(biased_p, ray.direction, intersection.get_N());
-        int ray_samples = 10;
+        int ray_samples = 20;
 
         while (ray_samples > 0) {
-            const Ray perturbed = get_perturbed_ray(reflected_ray, mat->m_shininess);
-            colour += context.ambient * mat->m_ks * ray_colour(context, perturbed, x, y, max_hits + 1);
+            const Ray perturbed_ray = get_perturbed_ray(reflected_ray, mat->m_shininess);
+            colour += mat->m_ks * ray_colour(context, perturbed_ray, x, y, max_hits + 1);
             ray_samples--;
         }
 
-        colour /= 10.0f;
+        colour /= 20.0f;
     }
 
     return colour;

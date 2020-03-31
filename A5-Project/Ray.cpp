@@ -13,7 +13,7 @@ vec3 Ray::get_point(float t) const {
     return origin + t * direction;
 }
 
-vec3 Ray::get_normalized_direction() {
+vec3 Ray::get_normalized_direction() const {
     return normalize(direction);
 }
 
