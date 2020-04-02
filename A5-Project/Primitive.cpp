@@ -42,7 +42,7 @@ NonhierPlane::~NonhierPlane() {}
 
 Intersection NonhierPlane::intersect(const Ray &ray) {
     const vec3 point = vec3(0, 0, 0);
-    const vec3 normal = vec3(0, 0, 1.0f);
+    vec3 normal = vec3(0, 0, 1.0f);
     
     float numerator = -dot(normal, ray.origin);
     float denominator = dot(normal, ray.direction);
@@ -54,7 +54,11 @@ Intersection NonhierPlane::intersect(const Ray &ray) {
     float t = numerator / denominator;
     if (t > 0) {
         vec3 p_on_plane = ray.get_point(t);
+        
         if (p_on_plane.x >= -0.5 && p_on_plane.x <= 0.5 && p_on_plane.y >= -0.5 && p_on_plane.y <= 0.5) {
+            if (dot(ray.direction, normal) > 0) {
+                normal = -normal;
+            }
             return Intersection(ray, normal, t, t > 0);
         }
     }
@@ -75,7 +79,22 @@ Intersection NonhierSphere::intersect(const Ray &ray) {
     if (root_count == 0) {
         return Intersection::NonIntersection(ray);
     } else {
-        double min_root = root_count == 1 ? roots[0] : std::min(roots[0], roots[1]);
+        double min_root;
+
+        if (root_count == 1) {
+            min_root = roots[0];
+        } else {
+            const double min = std::min(roots[0], roots[1]);
+            const double max = std::max(roots[0], roots[1]);
+            
+            // Ray origin inside sphere, so min root is actually the larger of the two
+            if (min < 0 && max >= 0) {
+                min_root = max;
+            } else {
+                min_root = min;
+            }
+        }
+
         const vec3 normal = ray.get_point(min_root) - m_pos;
         return Intersection(ray, normal, min_root, min_root > 0);
     }

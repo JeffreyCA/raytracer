@@ -22,9 +22,11 @@ using namespace std;
 using namespace glm;
 
 static const vec3 ZERO_VEC = vec3(0.0f);
-static const float EPSILON = 0.0001f;
-static const float SHADOW_BIAS = 0.0001f;
-static const int MAX_HIT_THRESHOLD = 2;
+static const vec3 ONE_VEC = vec3(1, 1, 1);
+static const vec3 SKY_BLUE = vec3(0, 161, 254) / 255.0f;
+
+static const float SHADOW_BIAS = 0.005f;
+static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
 static const int BG_HUE = 213;
 
@@ -37,12 +39,14 @@ struct Context;
 void A5_Render(SceneNode * root, Image & image, const vec3 &look_from, const vec3 &look_at, const vec3 &up, double fovy, const vec3 & ambient, const list<Light *> &lights);
 vec3 trace(Context &context, uint x, uint y, float x_offset, float y_offset);
 vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits);
-vec3 background_colour(Context &context, uint x, uint y);
+vec3 background_colour(Context &context, const Ray &ray);
 Intersection hit(const Ray &ray, SceneNode *root);
 bool is_light_path_blocked(SceneNode *root, const vec3 &inter_point, const vec3 &light_point);
 Ray get_reflected_ray(const vec3 &inter_point, const vec3 &direction, const vec3 &normal);
 vec3 compute_diffuse_specular(Context &context, const Intersection &intersection, PhongMaterial *mat);
 vec3 compute_reflection(Context &context, const Ray &ray, const Intersection &intersection, PhongMaterial *mat, uint x, uint y, int max_hits);
+vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &intersection, const vec3 &bg, PhongMaterial *mat, uint x, uint y, int max_hits);
+vec3 refractedRay(Context &context, const Ray &ray, const Intersection &intersection, const vec3 &bg, PhongMaterial *mat, uint x, uint y, int max_hits);
 
 struct Context {
     SceneNode *root;
@@ -52,8 +56,9 @@ struct Context {
     const list<Light *> &lights;
     float nx;
     float ny;
+    double fov;
 
-    Context(SceneNode *root, const mat4 &TSRT, const vec3 &look_from, const vec3 &ambient, const list<Light *> &lights, float nx, float ny): root(root), TSRT(TSRT), look_from(look_from), ambient(ambient), lights(lights), nx(nx), ny(ny) {}
+    Context(SceneNode *root, const mat4 &TSRT, const vec3 &look_from, const vec3 &ambient, const list<Light *> &lights, float nx, float ny, double fov): root(root), TSRT(TSRT), look_from(look_from), ambient(ambient), lights(lights), nx(nx), ny(ny), fov(fov) {}
 };
 
 void A5_Render(
@@ -113,7 +118,7 @@ void A5_Render(
                          vec4(look_from.x, look_from.y, look_from.z, 1));
     const mat4 TSRT = T4 * R3 * S2 * T1;
     // Use Context struct to hold all constant rendering information
-    Context c(root, TSRT, look_from, ambient, lights, nx, ny);
+    Context c(root, TSRT, look_from, ambient, lights, nx, ny, fovy);
 
 #ifdef PARALLEL
     uint cores = thread::hardware_concurrency();
@@ -205,7 +210,6 @@ vec3 trace(Context &context, uint x, uint y, float x_offset, float y_offset) {
     const list<Light *> &lights = context.lights;
     const vec4 world = TSRT * vec4(x + x_offset, y + y_offset, 0, 1);
     const Ray ray = Ray(look_from, vec3(world) - look_from);
-
     return ray_colour(context, ray, x, y, 0);
 }
 
@@ -218,6 +222,7 @@ vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits) 
     if (intersection.is_hit()) {
         PhongMaterial *material = intersection.get_material();
         vec3 colour = material->m_kd * context.ambient;
+
         // Add diffuse and specular components
         if (material->m_kd != ZERO_VEC) {
             colour += compute_diffuse_specular(context, intersection, material); 
@@ -227,60 +232,24 @@ vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits) 
         if (material->m_mirror) {
             colour += compute_reflection(context, ray, intersection, material, x, y, max_hits);
         }
+
+        if (!material->m_opaque) {
+            colour += compute_refraction(context, ray, intersection, ZERO_VEC, material, x, y, max_hits);
+        }
         return colour;
-    } else if (max_hits > 0) {
-        // Currently processing reflection ray, do not return bg colour or else we get some of the background colour throughout entire scene.
-        return vec3(0, 0, 0);
     } else {
-        return background_colour(context, x, y);
+        return background_colour(context, ray);
     }
 }
 
 /*
- * HSV to RGB conversion.
- * https://gist.github.com/kuathadianto/200148f53616cbd226d993b400214a7f
+ * Compute background colour based on ray direction. Clamped to FOV of scene.
  */
-vec3 hsv_to_rgb(int H, float S, float V) {
-    const float C = S * V;
-    const float X = C * (1 - abs(fmod(H / 60.0f, 2) - 1));
-    const float m = V - C;
-    float Rs, Gs, Bs;
-
-    if (H >= 0 && H < 60) {
-        Rs = C;
-        Gs = X;
-        Bs = 0;	
-    } else if (H >= 60 && H < 120) {	
-        Rs = X;
-        Gs = C;
-        Bs = 0;	
-    } else if (H >= 120 && H < 180) {
-        Rs = 0;
-        Gs = C;
-        Bs = X;	
-    } else if (H >= 180 && H < 240) {
-        Rs = 0;
-        Gs = X;
-        Bs = C;	
-    } else if(H >= 240 && H < 300) {
-        Rs = X;
-        Gs = 0;
-        Bs = C;	
-    } else {
-        Rs = C;
-        Gs = 0;
-        Bs = X;	
-    }
-
-    return vec3(Rs + m, Gs + m, Bs + m);
-}
-
-/*
- * Compute background colour at (x, y) by interpolating the saturation component of a blueish hue.
- */
-vec3 background_colour(Context &context, uint x, uint y) {
-    const float s = 1.0f - (float)y / context.ny;
-    return hsv_to_rgb(BG_HUE, s, 1.0f);
+vec3 background_colour(Context &context, const Ray &ray) {
+    static const float cos_fov = cos(radians(context.fov));
+    const float cosine = glm::clamp(normalize(ray.direction).y, -cos_fov, cos_fov);
+    const float s = cosine / cos_fov + 0.5f;
+    return (1 - s) * ONE_VEC + s * SKY_BLUE;
 }
 
 /*
@@ -297,8 +266,7 @@ Intersection hit(const Ray &ray, SceneNode *root) {
 bool is_light_path_blocked(SceneNode *root, const vec3 &inter_point, const vec3 &light_point) {
     const Ray ray = Ray(inter_point, light_point - inter_point);
     const Intersection intersection = root->intersect(ray);
-
-    return intersection.is_hit() && intersection.get_t() < 1.0f;
+    return intersection.is_hit() && intersection.get_t() < 1.0f && intersection.get_material()->m_opaque;
 }
 
 /*
@@ -380,21 +348,60 @@ vec3 compute_diffuse_specular(Context &context, const Intersection &intersection
  * Compute mirror reflection component by recursively casting reflection rays into the scene.
  */
 vec3 compute_reflection(Context &context, const Ray &ray, const Intersection &intersection, PhongMaterial *mat, uint x, uint y, int max_hits) {
-    vec3 colour = vec3(0, 0, 0);
-
-    if (max_hits < MAX_HIT_THRESHOLD) {
-        const vec3 biased_p = intersection.get_point() + SHADOW_BIAS * intersection.get_N();
-        const Ray reflected_ray = get_reflected_ray(biased_p, ray.direction, intersection.get_N());
-        int ray_samples = 20;
-
-        while (ray_samples > 0) {
-            const Ray perturbed_ray = get_perturbed_ray(reflected_ray, mat->m_glossiness);
-            colour += mat->m_ks * ray_colour(context, perturbed_ray, x, y, max_hits + 1);
-            ray_samples--;
-        }
-
-        colour /= 20.0f;
+    if (max_hits >= MAX_HIT_THRESHOLD) {
+        return vec3(0, 0, 0);
     }
 
+    vec3 colour = vec3(0, 0, 0);
+
+    const vec3 biased_p = intersection.get_point() + SHADOW_BIAS * intersection.get_N();
+    const Ray reflected_ray = get_reflected_ray(biased_p, ray.direction, intersection.get_N());
+    int ray_samples = 20;
+
+    while (ray_samples > 0) {
+        const Ray perturbed_ray = get_perturbed_ray(reflected_ray, mat->m_glossiness);
+        colour += mat->m_ks * ray_colour(context, perturbed_ray, x, y, max_hits + 1);
+        ray_samples--;
+    }
+
+    colour /= 20.0f;
     return colour;
+}
+
+vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &intersection, const vec3 &bg, PhongMaterial *mat, uint x, uint y, int max_hits) {
+    // cout << "ray origin: " << ray.origin << endl;
+    // cout << "ray dir: " << ray.direction << endl;
+
+    if (max_hits >= MAX_HIT_THRESHOLD) {
+        return ZERO_VEC;
+    }
+
+    vec3 normal = intersection.get_N();
+
+    float eta_1 = 1.0f;
+    float eta_2 = mat->m_refractive_index;
+    float cosine = dot(normalize(ray.direction), normal);
+    
+    if (cosine > 0) {
+        normal = -normal;
+        eta_1 = eta_2;
+        eta_2 = 1.0f;
+    } else {
+        cosine = -cosine;
+    }
+
+    const float eta_ratio = eta_1 / eta_2;
+    const float sqrt_term = 1.0f - ((eta_ratio * eta_ratio) * (1.0f - (cosine * cosine)));
+
+    if (sqrt_term < 0.0f) {
+        // Total internal refraction
+        return ZERO_VEC;
+    } else {
+        const vec3 point = intersection.get_point();
+        const vec3 direction = eta_ratio * normalize(ray.direction) + (eta_ratio * cosine - sqrt(sqrt_term)) * normal;
+        const vec3 origin = intersection.get_point() + SHADOW_BIAS * direction;
+        const Ray refracted_ray = Ray(origin, direction);
+        vec3 result = ray_colour(context, refracted_ray, x, y, max_hits + 1);
+        return mat->m_ks * result;
+    }
 }

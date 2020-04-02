@@ -24,9 +24,9 @@ public:
 
 private:
     Ray ray;
+    glm::vec3 N;
     float t;
     bool hit;
-    glm::vec3 N;
     glm::vec3 point;
 
     // Stores kd, ks, shininess

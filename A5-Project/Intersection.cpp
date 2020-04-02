@@ -3,10 +3,7 @@
 #include "Intersection.hpp"
 using namespace glm;
 
-Intersection::Intersection(const Ray &ray, const vec3 &normal, float t, bool hit): ray(ray), t(t), N(normalize(normal)), hit(hit) {
-    if (dot(ray.direction, N) > 0) {
-        N = -N;
-    }
+Intersection::Intersection(const Ray &ray, const vec3 &normal, float t, bool hit): ray(ray), N(normalize(normal)), t(t), hit(hit) {
     point = ray.get_point(t);
 }
 
@@ -15,9 +12,6 @@ void Intersection::convert_to_world(const glm::mat4 &trans, const glm::mat4 &inv
     ray.direction = vec3(trans * vec4(ray.direction, 0.0f));
     point = vec3(trans * vec4(point, 1.0f));
     N = normalize(transpose(mat3(invtrans)) * N);
-    if (dot(ray.direction, N) > 0) {
-        N = -N;
-    }
 }
 
 bool Intersection::is_hit() const {
