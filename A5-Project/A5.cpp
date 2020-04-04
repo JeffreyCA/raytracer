@@ -26,7 +26,8 @@ static const vec3 ONE_VEC = vec3(1, 1, 1);
 static const vec3 SKY_BLUE = vec3(0, 161, 254) / 255.0f;
 
 static const float SHADOW_BIAS = 0.005f;
-static const int GLOSSY_RAYS = 20;
+static const int GLOSSY_REFLECTION_RAYS = 20;
+static const int GLOSSY_REFRACTION_RAYS = 10;
 static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
 static const int BG_HUE = 213;
@@ -238,7 +239,8 @@ vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits) 
 
         // Add mirror reflection component
         if (material->m_opaque && material->m_mirror) {
-            colour += (1.0f - reflection_coeff) * compute_reflection(context, ray, intersection, material, x, y, max_hits);
+            // Not sure why it works if reflection coefficient is inverted???
+            colour += glm::clamp(1.0f - reflection_coeff, 0.9f, 1.0f) * compute_reflection(context, ray, intersection, material, x, y, max_hits);
         }
         return colour;
     } else {
@@ -280,7 +282,7 @@ Ray get_reflected_ray(const vec3 &inter_point, const vec3 &direction, const vec3
     return Ray(inter_point, direction - 2 * dot(direction, normal) * normal);
 }
 
-Ray get_perturbed_ray(const Ray &ray, float glossiness) {
+Ray get_perturbed_ray(const Ray &ray, const float glossiness) {
     const vec3 direction = ray.direction;
     const vec3 w = normalize(direction);
     const vec3 w_abs = vec3(fabs(w.x), fabs(w.y), fabs(w.z));
@@ -362,13 +364,13 @@ vec3 compute_reflection(Context &context, const Ray &ray, const Intersection &in
     const Ray reflected_ray = get_reflected_ray(biased_p, ray.direction, intersection.get_N());
 
     if (mat->m_mirror && mat->m_glossiness > 0) {
-        int ray_samples = GLOSSY_RAYS;
+        int ray_samples = GLOSSY_REFLECTION_RAYS;
         while (ray_samples > 0) {
             const Ray perturbed_ray = get_perturbed_ray(reflected_ray, mat->m_glossiness);
             colour += mat->m_ks * ray_colour(context, perturbed_ray, x, y, max_hits + 1);
             ray_samples--;
         }
-        colour /= GLOSSY_RAYS;
+        colour /= GLOSSY_REFLECTION_RAYS;
     } else {
         colour += mat->m_ks * ray_colour(context, reflected_ray, x, y, max_hits + 1);
     }
@@ -399,22 +401,22 @@ float compute_reflection_coeff(const vec3 &ray_direction, const vec3 &intersecti
         return 1.0f;
     }
 
-    const float r_0 = std::pow((eta_2 - eta_1) / (eta_2 + eta_1), 2);
-    const float r_theta = r_0 + ((1.0f - r_0) * std::pow(1 - cosine, 5));
-
-    return r_theta;
+    const float cosine2 = sqrt(sqrt_term);
+    const float R_perp = pow(((eta_1 * cosine - eta_2 * cosine2) / (eta_1 * cosine + eta_2 * cosine2)), 2);
+    const float R_parallel = pow(((eta_2 * cosine - eta_1 * cosine2) / (eta_2 * cosine + eta_1 * cosine2)), 2);
+	return (R_perp + R_parallel) / 2.0f;
 }
 
 vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &intersection, const vec3 &bg, PhongMaterial *mat, uint x, uint y, int max_hits) {
     if (max_hits >= MAX_HIT_THRESHOLD) {
         return ZERO_VEC;
     }
-
+    const vec3 normalized_ray_dir = normalize(ray.direction);
     vec3 normal = intersection.get_N();
 
     float eta_1 = 1.0f;
     float eta_2 = mat->m_refractive_index;
-    float cosine = dot(normalize(ray.direction), normal);
+    float cosine = dot(normalized_ray_dir, normal);
     
     if (cosine > 0) {
         normal = -normal;
@@ -428,11 +430,24 @@ vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &in
     const float sqrt_term = 1.0f - ((eta_ratio * eta_ratio) * (1.0f - (cosine * cosine)));
     
     assert(sqrt_term >= 0.0f);
-
     const vec3 point = intersection.get_point();
-    const vec3 direction = eta_ratio * normalize(ray.direction) + (eta_ratio * cosine - sqrt(sqrt_term)) * normal;
+    const vec3 direction = eta_ratio * normalized_ray_dir + (eta_ratio * cosine - sqrt(sqrt_term)) * normal;
     const vec3 origin = intersection.get_point() + SHADOW_BIAS * direction;
     const Ray refracted_ray = Ray(origin, direction);
-    vec3 result = ray_colour(context, refracted_ray, x, y, max_hits + 1);
-    return mat->m_ks * result;
+
+    vec3 colour = ZERO_VEC;
+    if (mat->m_glossiness > 0) {
+        const float glossiness = 1.0f / (1.0f - mat->m_glossiness);
+        int ray_samples = GLOSSY_REFRACTION_RAYS;
+
+        while (ray_samples > 0) {
+            const Ray perturbed_ray = get_perturbed_ray(refracted_ray, glossiness);
+            colour += mat->m_ks * ray_colour(context, perturbed_ray, x, y, max_hits + 1);
+            ray_samples--;
+        }
+        colour /= GLOSSY_REFRACTION_RAYS;
+    } else {
+        colour += mat->m_ks * ray_colour(context, refracted_ray, x, y, max_hits + 1);
+    }
+    return colour;
 }

@@ -441,7 +441,7 @@ int gr_clear_material_cmd(lua_State* L)
 
   data->material = new PhongMaterial(glm::vec3(kd[0], kd[1], kd[2]),
                                      glm::vec3(ks[0], ks[1], ks[2]),
-                                     shininess, 0, eta, false, false);
+                                     shininess, glossiness, eta, false, false);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
