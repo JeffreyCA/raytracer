@@ -37,6 +37,13 @@ struct Triangle
     {}
 };
 
+struct Face
+{
+    Triangle vertices;
+    Triangle normals;
+    Face(Triangle vertices, Triangle normals) : vertices(vertices), normals(normals) {}
+};
+
 // A polygonal mesh.
 class Mesh : public Primitive {
 public:
@@ -47,8 +54,8 @@ public:
 private:
     std::vector<glm::vec3> m_vertices;
     std::vector<glm::vec3> m_normals;
-    std::vector<Triangle> m_faces;
-    std::vector<Triangle> m_normal_faces;
+    std::vector<Face> m_faces;
+    // std::vector<Triangle> m_normal_faces;
 
     NonhierIrregularBox *bounding_box;
     bool skip_accel;
@@ -59,7 +66,7 @@ private:
     glm::vec3 cell_dim;
     glm::vec3 min_point;
     glm::vec3 max_point;
-    std::vector<std::vector<std::pair<Triangle, Triangle>>> grid_vector;
+    std::vector<std::vector<Face>> grid_vector;
 
     glm::vec3 intersect_ray_triangle(const Ray &ray, glm::vec3 &P0, glm::vec3 &P1, glm::vec3 &P2);
     friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);

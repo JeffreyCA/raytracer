@@ -49,11 +49,15 @@ Mesh::Mesh(const std::string& fname, ObjType type)
         } else if ( code == "f" ) {
             if (type == ObjType::WithNormals) {
                 ifs >> s1 >> slash >> n1 >> s2 >> slash >> n2 >> s3 >> slash >> n3;
-                m_faces.push_back(Triangle(s1 - 1, s2 - 1, s3 - 1));
-                m_normal_faces.push_back(Triangle(n1 - 1, n2 - 1, n3 - 1));
+                Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
+                Triangle normals(n1 - 1, n2 - 1, n3 - 1);
+                m_faces.push_back(Face(vertices, normals));
+                // m_normal_faces.push_back(Triangle(n1 - 1, n2 - 1, n3 - 1));
             } else if (type == ObjType::VerticesOnly) {
                 ifs >> s1 >> s2 >> s3;
-                m_faces.push_back(Triangle(s1 - 1, s2 - 1, s3 - 1));
+                Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
+                m_faces.push_back(Face(vertices, vertices));
+                // m_faces.push_back(Triangle(s1 - 1, s2 - 1, s3 - 1));
             }
         }
     }
@@ -92,12 +96,12 @@ Mesh::Mesh(const std::string& fname, ObjType type)
     num_cells = std::pow(grid_dim, 3);
 
     for (int i = 0; i < num_cells; i++) {
-        grid_vector.push_back(vector<pair<Triangle, Triangle>>());
+        grid_vector.push_back(vector<Face>());
     }
 
     for (int i = 0; i < m_faces.size(); ++i) {
-        Triangle &face_triangle = m_faces[i];
-        Triangle &norm_triangle = type == ObjType::WithNormals ? m_normal_faces[i] : face_triangle;
+        Triangle &face_triangle = m_faces[i].vertices;
+        Triangle &norm_triangle = type == ObjType::WithNormals ? m_faces[i].normals : face_triangle;
 
         vec3 &v0 = m_vertices[face_triangle.v1];
         vec3 &v1 = m_vertices[face_triangle.v2];
@@ -122,7 +126,7 @@ Mesh::Mesh(const std::string& fname, ObjType type)
         for (int x = min_cell_x; x <= max_cell_x; ++x) {
             for (int y = min_cell_y; y <= max_cell_y; ++y) {
                 for (int z = min_cell_z; z <= max_cell_z; ++z) {
-                    grid_vector[x + grid_dim * (y + grid_dim * z)].push_back(make_pair(face_triangle, norm_triangle));
+                    grid_vector[x + grid_dim * (y + grid_dim * z)].push_back(Face(face_triangle, norm_triangle));
                 }
             }
         }
@@ -158,7 +162,8 @@ Intersection Mesh::intersect(const Ray &ray) {
     if (skip_accel) {
         Intersection intersection = Intersection::NonIntersection(ray);
         // Compute nearest intersection point with mesh
-        for (const Triangle &triangle: m_faces) {
+        for (const Face &face: m_faces) {
+            const Triangle &triangle = face.vertices;
             vec3 &v0 = m_vertices[triangle.v1];
             vec3 &v1 = m_vertices[triangle.v2];
             vec3 &v2 = m_vertices[triangle.v3];
@@ -208,7 +213,7 @@ Intersection Mesh::intersect(const Ray &ray) {
     int step_z = ray.direction.z < 0 ? -1 : 1;
 
     Intersection intersection = Intersection::NonIntersection(ray);
-    vector<pair<Triangle, Triangle>> cur_cell;
+    vector<Face> cur_cell;
     
     int cur;
     if (next_crossing_t.x < next_crossing_t.y) {
@@ -236,10 +241,10 @@ Intersection Mesh::intersect(const Ray &ray) {
             cross_t = next_crossing_t.z;
         }
 
-        for (pair<Triangle, Triangle> &pair: cur_cell) {
-            vec3 &v0 = m_vertices[pair.first.v1];
-            vec3 &v1 = m_vertices[pair.first.v2];
-            vec3 &v2 = m_vertices[pair.first.v3];
+        for (Face &face: cur_cell) {
+            vec3 &v0 = m_vertices[face.vertices.v1];
+            vec3 &v1 = m_vertices[face.vertices.v2];
+            vec3 &v2 = m_vertices[face.vertices.v3];
 
             const vec3 bary = intersect_ray_triangle(ray, v0, v1, v2);
             const float beta = bary.x;
@@ -252,9 +257,9 @@ Intersection Mesh::intersect(const Ray &ray) {
                 if (!intersection.is_hit() || t < intersection.get_t()) {
                     const vec3 normal = cross(v1 - v0, v2 - v0);
                     if (has_normals) {
-                        vec3 &n0 = m_normals[pair.second.v1];
-                        vec3 &n1 = m_normals[pair.second.v2];
-                        vec3 &n2 = m_normals[pair.second.v3];
+                        vec3 &n0 = m_normals[face.normals.v1];
+                        vec3 &n1 = m_normals[face.normals.v2];
+                        vec3 &n2 = m_normals[face.normals.v3];
 
                         vec3 interp_normal = alpha * n0 + beta * n1 + gamma * n2;
                         if (dot(ray.direction, normal) * dot(ray.direction, interp_normal) < 0) {
