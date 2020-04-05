@@ -3,6 +3,8 @@
 
 stone = gr.material({0.8, 0.7, 0.7}, {0.0, 0.0, 0.0}, 0)
 grass = gr.material({0.1, 0.7, 0.1}, {0.0, 0.0, 0.0}, 0)
+checker_ground = gr.checker_material({0, 0, 0}, {1, 1, 1}, {0.5, 0.5, 0.5}, 50, 0)
+checker_cow = gr.checker_material({1, 0, 0}, {0, 1, 0}, {0.5, 0.5, 0.5}, 10, 0)
 hide = gr.material({0.84, 0.6, 0.53}, {0.3, 0.3, 0.3}, 20)
 
 -- ##############################################
@@ -49,7 +51,7 @@ for _, spec in pairs({
 			{'rrleg', {-.7, -.7, .7}, 0.3}
 		     }) do
    part = gr.nh_sphere(table.unpack(spec))
-   part:set_material(hide)
+   part:set_material(checker_cow)
    cow:add_child(part)
 end
 
@@ -62,10 +64,12 @@ scene:rotate('X', 23)
 
 -- the floor
 
-plane = gr.mesh( 'plane', 'plane.obj' )
+plane = gr.nh_plane('plane')
 scene:add_child(plane)
-plane:set_material(grass)
-plane:scale(30, 30, 30)
+plane:set_material(checker_ground)
+plane:rotate('x', 90)
+plane:scale(50, 30, 40)
+-- plane:translate(0, 0, 30)
 
 -- Construct a central altar in the shape of a buckyball.  The
 -- buckyball at the centre of the real Stonehenge was destroyed

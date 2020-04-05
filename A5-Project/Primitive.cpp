@@ -59,7 +59,9 @@ Intersection NonhierPlane::intersect(const Ray &ray) {
             if (dot(ray.direction, normal) > 0) {
                 normal = -normal;
             }
-            return Intersection(ray, normal, t, t > 0);
+            float u = p_on_plane.x + 0.5f;
+            float v = p_on_plane.y + 0.5f;
+            return Intersection(ray, normal, t, u, v, t > 0);
         }
     }
 
@@ -80,7 +82,6 @@ Intersection NonhierSphere::intersect(const Ray &ray) {
         return Intersection::NonIntersection(ray);
     } else {
         double min_root;
-
         if (root_count == 1) {
             min_root = roots[0];
         } else {
@@ -95,8 +96,10 @@ Intersection NonhierSphere::intersect(const Ray &ray) {
             }
         }
 
-        const vec3 normal = ray.get_point(min_root) - m_pos;
-        return Intersection(ray, normal, min_root, min_root > 0);
+        const vec3 normal = normalize(ray.get_point(min_root) - m_pos);
+        const float u = 0.5f + atan2(-normal.z, normal.x) / (2 * M_PI);
+        const float v = 0.5f - asin(normal.y) / M_PI;
+        return Intersection(ray, normal, min_root, u, v, min_root > 0);
     }
 }
 

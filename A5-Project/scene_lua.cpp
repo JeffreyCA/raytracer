@@ -54,6 +54,7 @@
 #include "JointNode.hpp"
 #include "Primitive.hpp"
 #include "Material.hpp"
+#include "Texture.hpp"
 #include "PhongMaterial.hpp"
 #include "A5.hpp"
 
@@ -483,6 +484,65 @@ int gr_clear_material_cmd(lua_State* L)
   return 1;
 }
 
+// Create a checker Material
+extern "C"
+int gr_checker_material_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_material_ud* data = (gr_material_ud*)lua_newuserdata(L, sizeof(gr_material_ud));
+  data->material = 0;
+  
+  double col1[3], col2[3], ks[3];
+  get_tuple(L, 1, col1, 3);
+  get_tuple(L, 2, col2, 3);
+  get_tuple(L, 3, ks, 3);
+
+  double scale_factor = luaL_checknumber(L, 4);
+  double shininess = luaL_checknumber(L, 5);
+
+  CheckeredTexture *texture = new CheckeredTexture(glm::vec3(col1[0], col1[1], col1[2]),
+                                                   glm::vec3(col2[0], col2[1], col2[2]),
+                                                   scale_factor);
+
+  data->material = new PhongMaterial(texture,
+                                     glm::vec3(ks[0], ks[1], ks[2]),
+                                     shininess, false);
+
+  luaL_newmetatable(L, "gr.material");
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Create an Image Material
+extern "C"
+int gr_image_material_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_material_ud* data = (gr_material_ud*)lua_newuserdata(L, sizeof(gr_material_ud));
+  data->material = 0;
+
+  const char* filename = luaL_checkstring(L, 1);
+  double ks[3];
+  get_tuple(L, 2, ks, 3);
+
+  double shininess = luaL_checknumber(L, 3);
+  bool ignore_lighting = lua_toboolean(L, 4);
+
+  ImageTexture *texture = new ImageTexture(filename);
+
+  data->material = new PhongMaterial(texture,
+                                     glm::vec3(ks[0], ks[1], ks[2]),
+                                     shininess, ignore_lighting);
+
+  luaL_newmetatable(L, "gr.material");
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
 // Add a Child to a node
 extern "C"
 int gr_node_add_child_cmd(lua_State* L)
@@ -628,6 +688,8 @@ static const luaL_Reg grlib_functions[] = {
   {"material", gr_material_cmd},
   {"mirror_material", gr_mirror_material_cmd},
   {"clear_material", gr_clear_material_cmd},
+  {"checker_material", gr_checker_material_cmd},
+  {"image_material", gr_image_material_cmd},
   // New for assignment 4
   {"cube", gr_cube_cmd},
   {"nh_plane", gr_nh_plane_cmd},

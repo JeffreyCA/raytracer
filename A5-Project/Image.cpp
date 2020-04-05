@@ -3,6 +3,7 @@
 #include "Image.hpp"
 
 #include <iostream>
+#include <fstream>
 #include <cstring>
 #include <lodepng/lodepng.h>
 
@@ -123,6 +124,36 @@ bool Image::savePng(const std::string & filename) const
   }
 
   return true;
+}
+
+Image Image::loadPng(std::string filename) {
+  std::ifstream ifs(filename.c_str());
+  if (!ifs.good()) {
+      filename = "Assets/" + filename;
+  }
+
+  std::vector<unsigned char> raw_image;
+  unsigned width, height;
+  unsigned error = lodepng::decode(raw_image, width, height, filename, LCT_RGB);
+
+  if (error) {
+    std::cerr << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+    exit(1);
+  }
+  
+  Image image(width, height);
+
+  for (uint y(0); y < height; y++) {
+    for (uint x(0); x < width; x++) {
+      for (uint i(0); i < m_colorComponents; ++i) {
+        double colour_value = (double) raw_image[m_colorComponents * (width * y + x) + i] / 255.0;
+        colour_value = clamp(colour_value, 0.0, 1.0);
+        image(x, y, i) = colour_value;
+      }
+    }
+  }
+
+  return image;
 }
 
 //---------------------------------------------------------------------------------------
