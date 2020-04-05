@@ -20,12 +20,13 @@ using namespace std;
 
 static const float EPSILON = 0.0001f;
 
-Mesh::Mesh(const std::string& fname, ObjType type)
+Mesh::Mesh(const std::string& fname, bool with_normals)
     : m_vertices()
     , m_faces()
+    , with_normals(with_normals)
 {
     std::string code;
-    char slash;
+    char s;
     double vx, vy, vz;
     size_t s1, s2, s3, skip;
     size_t n1, n2, n3;
@@ -37,8 +38,6 @@ Mesh::Mesh(const std::string& fname, ObjType type)
         ifs = std::ifstream(("Assets/" + fname).c_str());
     }
 
-    has_normals = (type == ObjType::WithNormals);
-
     while( ifs >> code ) {
         if (code == "v") {
             ifs >> vx >> vy >> vz;
@@ -47,17 +46,15 @@ Mesh::Mesh(const std::string& fname, ObjType type)
             ifs >> vx >> vy >> vz;
             m_normals.push_back(glm::vec3(vx, vy, vz));
         } else if ( code == "f" ) {
-            if (type == ObjType::WithNormals) {
-                ifs >> s1 >> slash >> n1 >> s2 >> slash >> n2 >> s3 >> slash >> n3;
+            if (with_normals) {
+                ifs >> s1 >> s >> s >> n1 >> s2 >> s >> s >> n2 >> s3 >> s >> s >> n3;
                 Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
                 Triangle normals(n1 - 1, n2 - 1, n3 - 1);
                 m_faces.push_back(Face(vertices, normals));
-                // m_normal_faces.push_back(Triangle(n1 - 1, n2 - 1, n3 - 1));
-            } else if (type == ObjType::VerticesOnly) {
+            } else {
                 ifs >> s1 >> s2 >> s3;
                 Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
                 m_faces.push_back(Face(vertices, vertices));
-                // m_faces.push_back(Triangle(s1 - 1, s2 - 1, s3 - 1));
             }
         }
     }
@@ -101,7 +98,7 @@ Mesh::Mesh(const std::string& fname, ObjType type)
 
     for (int i = 0; i < m_faces.size(); ++i) {
         Triangle &face_triangle = m_faces[i].vertices;
-        Triangle &norm_triangle = type == ObjType::WithNormals ? m_faces[i].normals : face_triangle;
+        Triangle &norm_triangle = with_normals ? m_faces[i].normals : face_triangle;
 
         vec3 &v0 = m_vertices[face_triangle.v1];
         vec3 &v1 = m_vertices[face_triangle.v2];
@@ -131,13 +128,6 @@ Mesh::Mesh(const std::string& fname, ObjType type)
             }
         }
     }
-    int sum = 0;
-    for (int i = 0; i < num_cells; i++) {
-        sum += grid_vector[i].size();
-    }
-
-    cout << "sum: " << sum << endl;
-    cout << "triangles: " << m_faces.size() << endl;
 }
 
 Mesh::~Mesh() {
@@ -153,37 +143,57 @@ Intersection Mesh::intersect(const Ray &ray) {
         return bounding_box_intersection;
     }
 #endif
-
     // Ray does not intersect bounding volume, return early
     if (!bounding_box_intersection.is_hit()) {
         return bounding_box_intersection;
     }
 
     if (skip_accel) {
-        Intersection intersection = Intersection::NonIntersection(ray);
-        // Compute nearest intersection point with mesh
-        for (const Face &face: m_faces) {
-            const Triangle &triangle = face.vertices;
-            vec3 &v0 = m_vertices[triangle.v1];
-            vec3 &v1 = m_vertices[triangle.v2];
-            vec3 &v2 = m_vertices[triangle.v3];
+        return intersect_ray_regular(ray);
+    } else {
+        return intersect_ray_grid(ray, bounding_box_intersection);
+    }
+}
 
-            const vec3 bary = intersect_ray_triangle(ray, v0, v1, v2);
-            const float beta = bary.x;
-            const float gamma = bary.y;
-            const float t = bary.z;
+Intersection Mesh::intersect_ray_regular(const Ray &ray) {
+    Intersection intersection = Intersection::NonIntersection(ray);
+    // Compute nearest intersection point with mesh
+    for (const Face &face: m_faces) {
+        const Triangle &triangle = face.vertices;
+        const vec3 &v0 = m_vertices[triangle.v1];
+        const vec3 &v1 = m_vertices[triangle.v2];
+        const vec3 &v2 = m_vertices[triangle.v3];
 
-            // Intersection point should not be behind ray origin
-            if (t > 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1) {			
-                if (!intersection.is_hit() || t < intersection.get_t()) {
-                    const vec3 normal = cross(v1 - v0, v2 - v0);
+        const vec3 bary = intersect_ray_triangle(ray, v0, v1, v2);
+        const float beta = bary.x;
+        const float gamma = bary.y;
+        const float alpha = 1.0f - beta - gamma;
+        const float t = bary.z;
+
+        // Intersection point should not be behind ray origin
+        if (t > 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1) {			
+            if (!intersection.is_hit() || t < intersection.get_t()) {
+                const vec3 normal = cross(v1 - v0, v2 - v0);
+                if (with_normals) {
+                    const vec3 &n0 = m_normals[face.normals.v1];
+                    const vec3 &n1 = m_normals[face.normals.v2];
+                    const vec3 &n2 = m_normals[face.normals.v3];
+
+                    vec3 interp_normal = alpha * n0 + beta * n1 + gamma * n2;
+                    if (dot(ray.direction, normal) * dot(ray.direction, interp_normal) < 0) {
+                        interp_normal = -interp_normal;
+                    }
+                    intersection = Intersection(ray, interp_normal, t, true);
+                } else {
                     intersection = Intersection(ray, normal, t, true);
                 }
             }
         }
-        return intersection;
     }
+    return intersection;
+}
 
+Intersection Mesh::intersect_ray_grid(const Ray &ray, const Intersection &bounding_box_intersection) {
     vec3 bb_intersection = bounding_box_intersection.get_point();
 
     int x = glm::clamp((int) std::floor((bb_intersection.x - min_point.x) / cell_dim.x), 0, grid_dim - 1);
@@ -241,10 +251,10 @@ Intersection Mesh::intersect(const Ray &ray) {
             cross_t = next_crossing_t.z;
         }
 
-        for (Face &face: cur_cell) {
-            vec3 &v0 = m_vertices[face.vertices.v1];
-            vec3 &v1 = m_vertices[face.vertices.v2];
-            vec3 &v2 = m_vertices[face.vertices.v3];
+        for (const Face &face: cur_cell) {
+            const vec3 &v0 = m_vertices[face.vertices.v1];
+            const vec3 &v1 = m_vertices[face.vertices.v2];
+            const vec3 &v2 = m_vertices[face.vertices.v3];
 
             const vec3 bary = intersect_ray_triangle(ray, v0, v1, v2);
             const float beta = bary.x;
@@ -256,7 +266,7 @@ Intersection Mesh::intersect(const Ray &ray) {
             if (t > 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1 && t < cross_t) {			
                 if (!intersection.is_hit() || t < intersection.get_t()) {
                     const vec3 normal = cross(v1 - v0, v2 - v0);
-                    if (has_normals) {
+                    if (with_normals) {
                         vec3 &n0 = m_normals[face.normals.v1];
                         vec3 &n1 = m_normals[face.normals.v2];
                         vec3 &n2 = m_normals[face.normals.v3];
@@ -315,7 +325,7 @@ Intersection Mesh::intersect(const Ray &ray) {
     return intersection;
 }
 
-vec3 Mesh::intersect_ray_triangle(const Ray &ray, vec3 &P0, vec3 &P1, vec3 &P2) {
+vec3 Mesh::intersect_ray_triangle(const Ray &ray, const vec3 &P0, const vec3 &P1, const vec3 &P2) {
     const float R1 = ray.origin.x - P0.x;
     const float R2 = ray.origin.y - P0.y;
     const float R3 = ray.origin.z - P0.z;

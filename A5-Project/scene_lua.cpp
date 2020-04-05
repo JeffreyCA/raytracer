@@ -282,7 +282,7 @@ int gr_mesh_cmd(lua_State* L)
 	Mesh *mesh = nullptr;
 
 	if( i == mesh_map.end() ) {
-		mesh = new Mesh(obj_fname, ObjType::VerticesOnly);
+		mesh = new Mesh(obj_fname, false);
 		mesh_map[sfname] = mesh;
 	} else {
 		mesh = i->second;
@@ -316,7 +316,7 @@ int gr_normal_mesh_cmd(lua_State* L)
 	Mesh *mesh = nullptr;
 
 	if( i == mesh_map.end() ) {
-		mesh = new Mesh(obj_fname, ObjType::WithNormals);
+		mesh = new Mesh(obj_fname, true);
 		mesh_map[sfname] = mesh;
 	} else {
 		mesh = i->second;

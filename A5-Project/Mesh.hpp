@@ -47,7 +47,7 @@ struct Face
 // A polygonal mesh.
 class Mesh : public Primitive {
 public:
-    Mesh(const std::string& fname, ObjType type);
+    Mesh(const std::string& fname, bool with_normals);
     virtual ~Mesh();
     virtual Intersection intersect(const Ray &ray) override;
 
@@ -59,7 +59,7 @@ private:
 
     NonhierIrregularBox *bounding_box;
     bool skip_accel;
-    bool has_normals;
+    bool with_normals;
     int num_cells;
 
     int grid_dim;
@@ -68,6 +68,9 @@ private:
     glm::vec3 max_point;
     std::vector<std::vector<Face>> grid_vector;
 
-    glm::vec3 intersect_ray_triangle(const Ray &ray, glm::vec3 &P0, glm::vec3 &P1, glm::vec3 &P2);
+    glm::vec3 intersect_ray_triangle(const Ray &ray, const glm::vec3 &P0, const glm::vec3 &P1, const glm::vec3 &P2);
+    Intersection intersect_ray_grid(const Ray &ray, const Intersection &bounding_box_intersection);
+    Intersection intersect_ray_regular(const Ray &ray);
+
     friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
 };
