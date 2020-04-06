@@ -30,7 +30,6 @@ static const int GLOSSY_REFLECTION_RAYS = 20;
 static const int GLOSSY_REFRACTION_RAYS = 10;
 static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
-static const int BG_HUE = 213;
 
 static random_device rd;
 static default_random_engine mt(rd());
@@ -48,7 +47,7 @@ Ray get_reflected_ray(const vec3 &inter_point, const vec3 &direction, const vec3
 vec3 compute_diffuse_specular(Context &context, const Ray &ray, const Intersection &intersection, PhongMaterial *mat);
 float compute_reflection_coeff(const vec3 &ray_direction, const vec3 &intersection_normal, PhongMaterial *mat);
 vec3 compute_reflection(Context &context, const Ray &ray, const Intersection &intersection, PhongMaterial *mat, uint x, uint y, int max_hits);
-vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &intersection, const vec3 &bg, PhongMaterial *mat, uint x, uint y, int max_hits);
+vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &intersection, PhongMaterial *mat, uint x, uint y, int max_hits);
 
 struct Context {
     SceneNode *root;
@@ -98,7 +97,6 @@ void A5_Render(
 
     const size_t nx = image.width();
     const size_t ny = image.height();
-    const size_t pixels = nx * ny;
 
     const float w = nx / ny * 2 * d * tan(radians(fovy / 2.0f));
     const float h = 2 * d * tan(radians(fovy / 2.0f));
@@ -134,7 +132,7 @@ void A5_Render(
             uint prev_pct = 0;
             uint progress = 0;
 
-            for (int j = thread_id; j < pixels; j += cores) {
+            for (size_t j = thread_id; j < pixels; j += cores) {
                 const uint x = j % ny;
                 const uint y = j / ny;
                 progress = (uint) ((float)y / ny * 100);
@@ -205,11 +203,8 @@ void A5_Render(
  * Compute the colour at (x + offset, y + offset).
  */
 vec3 trace(Context &context, uint x, uint y, float x_offset, float y_offset) {
-    SceneNode *root = context.root;
     const mat4 &TSRT = context.TSRT;
     const vec3 &look_from = context.look_from;
-    const vec3 &ambient = context.ambient;
-    const list<Light *> &lights = context.lights;
     const vec4 world = TSRT * vec4(x + x_offset, y + y_offset, 0, 1);
     const Ray ray = Ray(look_from, vec3(world) - look_from);
     return ray_colour(context, ray, x, y, 0);
@@ -233,7 +228,7 @@ vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits) 
         const float reflection_coeff = compute_reflection_coeff(ray.direction, intersection.get_N(), material);
 
         if (!material->m_opaque && reflection_coeff < 1.0f) {
-            colour += (1.0f - reflection_coeff) * compute_refraction(context, ray, intersection, ZERO_VEC, material, x, y, max_hits);
+            colour += (1.0f - reflection_coeff) * compute_refraction(context, ray, intersection, material, x, y, max_hits);
             colour += reflection_coeff * compute_reflection(context, ray, intersection, material, x, y, max_hits);
         }
 
@@ -416,7 +411,7 @@ float compute_reflection_coeff(const vec3 &ray_direction, const vec3 &intersecti
 	return (R_perp + R_parallel) / 2.0f;
 }
 
-vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &intersection, const vec3 &bg, PhongMaterial *mat, uint x, uint y, int max_hits) {
+vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &intersection, PhongMaterial *mat, uint x, uint y, int max_hits) {
     if (max_hits >= MAX_HIT_THRESHOLD) {
         return ZERO_VEC;
     }
@@ -441,7 +436,7 @@ vec3 compute_refraction(Context &context, const Ray &ray, const Intersection &in
     assert(sqrt_term >= 0.0f);
     const vec3 point = intersection.get_point();
     const vec3 direction = eta_ratio * normalized_ray_dir + (eta_ratio * cosine - sqrt(sqrt_term)) * normal;
-    const vec3 origin = intersection.get_point() + SHADOW_BIAS * direction;
+    const vec3 origin = point + SHADOW_BIAS * direction;
     const Ray refracted_ray = Ray(origin, direction);
 
     vec3 colour = ZERO_VEC;

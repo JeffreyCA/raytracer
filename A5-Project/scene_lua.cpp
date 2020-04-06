@@ -283,7 +283,7 @@ int gr_mesh_cmd(lua_State* L)
 	Mesh *mesh = nullptr;
 
 	if( i == mesh_map.end() ) {
-		mesh = new Mesh(obj_fname, false);
+		mesh = new Mesh(obj_fname, ObjType::Vertices);
 		mesh_map[sfname] = mesh;
 	} else {
 		mesh = i->second;
@@ -317,7 +317,41 @@ int gr_normal_mesh_cmd(lua_State* L)
 	Mesh *mesh = nullptr;
 
 	if( i == mesh_map.end() ) {
-		mesh = new Mesh(obj_fname, true);
+		mesh = new Mesh(obj_fname, ObjType::Normals);
+		mesh_map[sfname] = mesh;
+	} else {
+		mesh = i->second;
+	}
+
+	data->node = new GeometryNode(name, mesh);
+
+	luaL_getmetatable(L, "gr.node");
+	lua_setmetatable(L, -2);
+
+	return 1;
+}
+
+// Create a polygonal Mesh node with normals and textures
+extern "C"
+int gr_texture_mesh_cmd(lua_State* L)
+{
+	GRLUA_DEBUG_CALL;
+
+	gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+	data->node = 0;
+
+	const char* name = luaL_checkstring(L, 1);
+	const char* obj_fname = luaL_checkstring(L, 2);
+
+	std::string sfname(obj_fname);
+
+	// Use a dictionary structure to make sure every mesh is loaded
+	// at most once.
+	auto i = mesh_map.find(sfname);
+	Mesh *mesh = nullptr;
+
+	if( i == mesh_map.end() ) {
+		mesh = new Mesh(obj_fname, ObjType::Textures);
 		mesh_map[sfname] = mesh;
 	} else {
 		mesh = i->second;
@@ -697,6 +731,7 @@ static const luaL_Reg grlib_functions[] = {
   {"nh_box", gr_nh_box_cmd},
   {"mesh", gr_mesh_cmd},
   {"normal_mesh", gr_normal_mesh_cmd},
+  {"texture_mesh", gr_texture_mesh_cmd},
   {"light", gr_light_cmd},
   {"render", gr_render_cmd},
   {0, 0}

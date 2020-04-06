@@ -41,7 +41,6 @@ Intersection Cube::intersect(const Ray &ray) {
 NonhierPlane::~NonhierPlane() {}
 
 Intersection NonhierPlane::intersect(const Ray &ray) {
-    const vec3 point = vec3(0, 0, 0);
     vec3 normal = vec3(0, 0, 1.0f);
     
     float numerator = -dot(normal, ray.origin);
@@ -156,7 +155,7 @@ vec3 NonhierIrregularBox::get_normal(const vec3 &intersection) {
     }
 }
 
-NonhierBox::NonhierBox(const vec3& pos, double size): m_size(size), NonhierIrregularBox(pos, vec3(size, size, size)) {}
+NonhierBox::NonhierBox(const vec3& pos, double size): NonhierIrregularBox(pos, vec3(size, size, size)) {}
 
 NonhierBox::~NonhierBox() {}
 

@@ -72,6 +72,4 @@ public:
   NonhierBox(const glm::vec3& pos, double size);
   virtual ~NonhierBox();
   virtual Intersection intersect(const Ray &ray);
-private:
-  double m_size;
 };

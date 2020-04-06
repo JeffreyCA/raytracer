@@ -3,7 +3,7 @@
 #include "Intersection.hpp"
 using namespace glm;
 
-Intersection::Intersection(const Ray &ray, const vec3 &normal, float t, bool hit): ray(ray), N(normalize(normal)), t(t), hit(hit) {
+Intersection::Intersection(const Ray &ray, const vec3 &normal, float t, bool hit): ray(ray), N(normalize(normal)), t(t), u(0), v(0), hit(hit) {
     point = ray.get_point(t);
 }
 

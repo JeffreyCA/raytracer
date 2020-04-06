@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <fstream>
-
+#include <sstream>
 #include <glm/ext.hpp>
 
 // #include "cs488-framework/ObjFileDecoder.hpp"
@@ -20,19 +20,20 @@ using namespace std;
 
 static const float EPSILON = 0.0001f;
 
-Mesh::Mesh(const std::string& fname, bool with_normals)
+Mesh::Mesh(const std::string& fname, ObjType type)
     : m_vertices()
     , m_faces()
-    , with_normals(with_normals)
+    , type(type)
 {
     std::string code;
     char s;
     double vx, vy, vz;
-    size_t s1, s2, s3, skip;
+    double tu, tv;
+    size_t s1, s2, s3;
     size_t n1, n2, n3;
+    size_t t1, t2, t3;
 
-    std::ifstream ifs;
-    ifs = std::ifstream(fname.c_str());
+    std::ifstream ifs(fname.c_str());
 
     if (!ifs.good()) {
         ifs = std::ifstream(("Assets/" + fname).c_str());
@@ -42,19 +43,32 @@ Mesh::Mesh(const std::string& fname, bool with_normals)
         if (code == "v") {
             ifs >> vx >> vy >> vz;
             m_vertices.push_back(glm::vec3(vx, vy, vz));
+        } else if (code == "vt") {
+            ifs >> tu >> tv;
+            m_textures.push_back(glm::vec2(tu, tv));
         } else if (code == "vn") {
             ifs >> vx >> vy >> vz;
             m_normals.push_back(glm::vec3(vx, vy, vz));
         } else if ( code == "f" ) {
-            if (with_normals) {
-                ifs >> s1 >> s >> s >> n1 >> s2 >> s >> s >> n2 >> s3 >> s >> s >> n3;
+            if (type == ObjType::Textures) {
+                ifs >> s1 >> s >> t1 >> s >> n1 >>
+                       s2 >> s >> t2 >> s >> n2 >>
+                       s3 >> s >> t3 >> s >> n3;
+                Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
+                Triangle normals(n1 - 1, n2 - 1, n3 - 1);
+                Triangle textures(t1 - 1, t2 - 1, t3 - 1);
+                m_faces.push_back(Face(vertices, normals, textures));
+            } else if (type == ObjType::Normals) {
+                ifs >> s1 >> s >> s >> n1 >>
+                       s2 >> s >> s >> n2 >>
+                       s3 >> s >> s >> n3;
                 Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
                 Triangle normals(n1 - 1, n2 - 1, n3 - 1);
                 m_faces.push_back(Face(vertices, normals));
-            } else {
+             } else if (type == ObjType::Vertices) {
                 ifs >> s1 >> s2 >> s3;
                 Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
-                m_faces.push_back(Face(vertices, vertices));
+                m_faces.push_back(Face(vertices));
             }
         }
     }
@@ -85,6 +99,8 @@ Mesh::Mesh(const std::string& fname, bool with_normals)
         cout << "Skipped grid acceleration for " << fname << endl;
         skip_accel = true;
         return;
+    } else {
+        skip_accel = false;
     }
 
     // Setup grid acceleration structure params
@@ -96,9 +112,10 @@ Mesh::Mesh(const std::string& fname, bool with_normals)
         grid_vector.push_back(vector<Face>());
     }
 
-    for (int i = 0; i < m_faces.size(); ++i) {
-        Triangle &face_triangle = m_faces[i].vertices;
-        Triangle &norm_triangle = with_normals ? m_faces[i].normals : face_triangle;
+    for (size_t i = 0; i < m_faces.size(); ++i) {
+        const Triangle &face_triangle = m_faces[i].vertices;
+        const Triangle &norm_triangle = (type != ObjType::Vertices) ? m_faces[i].normals : face_triangle;
+        const Triangle &tex_triangle = (type == ObjType::Textures) ? m_faces[i].textures : face_triangle;
 
         vec3 &v0 = m_vertices[face_triangle.v1];
         vec3 &v1 = m_vertices[face_triangle.v2];
@@ -123,7 +140,7 @@ Mesh::Mesh(const std::string& fname, bool with_normals)
         for (int x = min_cell_x; x <= max_cell_x; ++x) {
             for (int y = min_cell_y; y <= max_cell_y; ++y) {
                 for (int z = min_cell_z; z <= max_cell_z; ++z) {
-                    grid_vector[x + grid_dim * (y + grid_dim * z)].push_back(Face(face_triangle, norm_triangle));
+                    grid_vector[x + grid_dim * (y + grid_dim * z)].push_back(Face(face_triangle, norm_triangle, tex_triangle));
                 }
             }
         }
@@ -174,7 +191,7 @@ Intersection Mesh::intersect_ray_regular(const Ray &ray) {
         if (t > 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1) {			
             if (!intersection.is_hit() || t < intersection.get_t()) {
                 const vec3 normal = cross(v1 - v0, v2 - v0);
-                if (with_normals) {
+                if (type == ObjType::Normals || type == ObjType::Textures) {
                     const vec3 &n0 = m_normals[face.normals.v1];
                     const vec3 &n1 = m_normals[face.normals.v2];
                     const vec3 &n2 = m_normals[face.normals.v3];
@@ -183,7 +200,16 @@ Intersection Mesh::intersect_ray_regular(const Ray &ray) {
                     if (dot(ray.direction, normal) * dot(ray.direction, interp_normal) < 0) {
                         interp_normal = -interp_normal;
                     }
-                    intersection = Intersection(ray, interp_normal, t, true);
+
+                    if (type == ObjType::Textures) {
+                        const vec2 &t0 = m_textures[face.textures.v1];
+                        const vec2 &t1 = m_textures[face.textures.v2];
+                        const vec2 &t2 = m_textures[face.textures.v3];
+                        const vec2 &uv = alpha * t0 + beta * t1 + gamma * t2;
+                        intersection = Intersection(ray, interp_normal, t, uv.x, uv.y, true);
+                    } else {
+                        intersection = Intersection(ray, interp_normal, t, true);
+                    }
                 } else {
                     intersection = Intersection(ray, normal, t, true);
                 }
@@ -263,19 +289,28 @@ Intersection Mesh::intersect_ray_grid(const Ray &ray, const Intersection &boundi
             const float t = bary.z;
 
             // Intersection point should not be behind ray origin
-            if (t > 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1 && t < cross_t) {			
+            if (t > 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1 && t < cross_t) {
                 if (!intersection.is_hit() || t < intersection.get_t()) {
                     const vec3 normal = cross(v1 - v0, v2 - v0);
-                    if (with_normals) {
-                        vec3 &n0 = m_normals[face.normals.v1];
-                        vec3 &n1 = m_normals[face.normals.v2];
-                        vec3 &n2 = m_normals[face.normals.v3];
+                    if (type == ObjType::Normals || type == ObjType::Textures) {
+                        const vec3 &n0 = m_normals[face.normals.v1];
+                        const vec3 &n1 = m_normals[face.normals.v2];
+                        const vec3 &n2 = m_normals[face.normals.v3];
 
                         vec3 interp_normal = alpha * n0 + beta * n1 + gamma * n2;
                         if (dot(ray.direction, normal) * dot(ray.direction, interp_normal) < 0) {
                             interp_normal = -interp_normal;
                         }
-                        intersection = Intersection(ray, interp_normal, t, true);
+
+                        if (type == ObjType::Textures) {
+                            const vec2 &t0 = m_textures[face.textures.v1];
+                            const vec2 &t1 = m_textures[face.textures.v2];
+                            const vec2 &t2 = m_textures[face.textures.v3];
+                            const vec2 &uv = alpha * t0 + beta * t1 + gamma * t2;
+                            intersection = Intersection(ray, interp_normal, t, uv.x, uv.y, true);
+                        } else {
+                            intersection = Intersection(ray, interp_normal, t, true);
+                        }
                     } else {
                         intersection = Intersection(ray, normal, t, true);
                     }
@@ -361,25 +396,4 @@ vec3 Mesh::intersect_ray_triangle(const Ray &ray, const vec3 &P0, const vec3 &P1
     ));
 
     return vec3(D1 / D, D2 / D, D3 / D);
-}
-
-std::ostream& operator<<(std::ostream& out, const Mesh& mesh)
-{
-  out << "mesh {";
-  /*
-  
-  for( size_t idx = 0; idx < mesh.m_verts.size(); ++idx ) {
-      const MeshVertex& v = mesh.m_verts[idx];
-      out << glm::to_string( v.m_position );
-    if( mesh.m_have_norm ) {
-        out << " / " << glm::to_string( v.m_normal );
-    }
-    if( mesh.m_have_uv ) {
-        out << " / " << glm::to_string( v.m_uv );
-    }
-  }
-
-*/
-  out << "}";
-  return out;
 }
