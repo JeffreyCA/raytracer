@@ -27,6 +27,7 @@ sky:set_material(stars_mat)
 sphere = gr.nh_sphere('sphere', {0, 0, 0}, 10)
 scene_root:add_child(sphere)
 sphere:set_material(earth_mat)
+
 light = gr.light({0, 0, 0}, {1, 1, 1}, {0, 0, 0})
 
 ambient = 0.3
