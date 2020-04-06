@@ -54,20 +54,20 @@ Mesh::Mesh(const std::string& fname, ObjType type)
                 ifs >> s1 >> s >> t1 >> s >> n1 >>
                        s2 >> s >> t2 >> s >> n2 >>
                        s3 >> s >> t3 >> s >> n3;
-                Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
-                Triangle normals(n1 - 1, n2 - 1, n3 - 1);
-                Triangle textures(t1 - 1, t2 - 1, t3 - 1);
+                Triangle *vertices = new Triangle(s1 - 1, s2 - 1, s3 - 1);
+                Triangle *normals = new Triangle(n1 - 1, n2 - 1, n3 - 1);
+                Triangle *textures = new Triangle(t1 - 1, t2 - 1, t3 - 1);
                 m_faces.push_back(Face(vertices, normals, textures));
             } else if (type == ObjType::Normals) {
                 ifs >> s1 >> s >> s >> n1 >>
                        s2 >> s >> s >> n2 >>
                        s3 >> s >> s >> n3;
-                Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
-                Triangle normals(n1 - 1, n2 - 1, n3 - 1);
+                Triangle *vertices = new Triangle(s1 - 1, s2 - 1, s3 - 1);
+                Triangle *normals = new Triangle(n1 - 1, n2 - 1, n3 - 1);
                 m_faces.push_back(Face(vertices, normals));
              } else if (type == ObjType::Vertices) {
                 ifs >> s1 >> s2 >> s3;
-                Triangle vertices(s1 - 1, s2 - 1, s3 - 1);
+                Triangle *vertices = new Triangle(s1 - 1, s2 - 1, s3 - 1);
                 m_faces.push_back(Face(vertices));
             }
         }
@@ -113,13 +113,13 @@ Mesh::Mesh(const std::string& fname, ObjType type)
     }
 
     for (size_t i = 0; i < m_faces.size(); ++i) {
-        const Triangle &face_triangle = m_faces[i].vertices;
-        const Triangle &norm_triangle = (type != ObjType::Vertices) ? m_faces[i].normals : face_triangle;
-        const Triangle &tex_triangle = (type == ObjType::Textures) ? m_faces[i].textures : face_triangle;
+        Triangle *face_triangle = m_faces[i].vertices;
+        Triangle *norm_triangle = (type != ObjType::Vertices) ? m_faces[i].normals : face_triangle;
+        Triangle *tex_triangle = (type == ObjType::Textures) ? m_faces[i].textures : face_triangle;
 
-        vec3 &v0 = m_vertices[face_triangle.v1];
-        vec3 &v1 = m_vertices[face_triangle.v2];
-        vec3 &v2 = m_vertices[face_triangle.v3];
+        const vec3 &v0 = m_vertices[face_triangle->v1];
+        const vec3 &v1 = m_vertices[face_triangle->v2];
+        const vec3 &v2 = m_vertices[face_triangle->v3];
         vec3 min;
         vec3 max;
         min.x = std::min(v0.x, std::min(v1.x, v2.x));
@@ -176,10 +176,10 @@ Intersection Mesh::intersect_ray_regular(const Ray &ray) {
     Intersection intersection = Intersection::NonIntersection(ray);
     // Compute nearest intersection point with mesh
     for (const Face &face: m_faces) {
-        const Triangle &triangle = face.vertices;
-        const vec3 &v0 = m_vertices[triangle.v1];
-        const vec3 &v1 = m_vertices[triangle.v2];
-        const vec3 &v2 = m_vertices[triangle.v3];
+        const Triangle *triangle = face.vertices;
+        const vec3 &v0 = m_vertices[triangle->v1];
+        const vec3 &v1 = m_vertices[triangle->v2];
+        const vec3 &v2 = m_vertices[triangle->v3];
 
         const vec3 bary = intersect_ray_triangle(ray, v0, v1, v2);
         const float beta = bary.x;
@@ -192,9 +192,9 @@ Intersection Mesh::intersect_ray_regular(const Ray &ray) {
             if (!intersection.is_hit() || t < intersection.get_t()) {
                 const vec3 normal = cross(v1 - v0, v2 - v0);
                 if (type == ObjType::Normals || type == ObjType::Textures) {
-                    const vec3 &n0 = m_normals[face.normals.v1];
-                    const vec3 &n1 = m_normals[face.normals.v2];
-                    const vec3 &n2 = m_normals[face.normals.v3];
+                    const vec3 &n0 = m_normals[face.normals->v1];
+                    const vec3 &n1 = m_normals[face.normals->v2];
+                    const vec3 &n2 = m_normals[face.normals->v3];
 
                     vec3 interp_normal = alpha * n0 + beta * n1 + gamma * n2;
                     if (dot(ray.direction, normal) * dot(ray.direction, interp_normal) < 0) {
@@ -202,9 +202,9 @@ Intersection Mesh::intersect_ray_regular(const Ray &ray) {
                     }
 
                     if (type == ObjType::Textures) {
-                        const vec2 &t0 = m_textures[face.textures.v1];
-                        const vec2 &t1 = m_textures[face.textures.v2];
-                        const vec2 &t2 = m_textures[face.textures.v3];
+                        const vec2 &t0 = m_textures[face.textures->v1];
+                        const vec2 &t1 = m_textures[face.textures->v2];
+                        const vec2 &t2 = m_textures[face.textures->v3];
                         const vec2 &uv = alpha * t0 + beta * t1 + gamma * t2;
                         intersection = Intersection(ray, interp_normal, t, uv.x, uv.y, true);
                     } else {
@@ -220,7 +220,7 @@ Intersection Mesh::intersect_ray_regular(const Ray &ray) {
 }
 
 Intersection Mesh::intersect_ray_grid(const Ray &ray, const Intersection &bounding_box_intersection) {
-    vec3 bb_intersection = bounding_box_intersection.get_point();
+    const vec3 bb_intersection = bounding_box_intersection.get_point();
 
     int x = glm::clamp((int) std::floor((bb_intersection.x - min_point.x) / cell_dim.x), 0, grid_dim - 1);
     int y = glm::clamp((int) std::floor((bb_intersection.y - min_point.y) / cell_dim.y), 0, grid_dim - 1);
@@ -240,13 +240,13 @@ Intersection Mesh::intersect_ray_grid(const Ray &ray, const Intersection &boundi
     offset = ray.direction.z < 0 ? 0 : 1;
     next_crossing_t.z = bounding_box_intersection.get_t() + ((z + offset) * cell_dim.z - (bb_intersection.z - min_point.z)) / ray.direction.z;
     
-    int exit_x = ray.direction.x < 0 ? -1 : grid_dim;
-    int exit_y = ray.direction.y < 0 ? -1 : grid_dim;
-    int exit_z = ray.direction.z < 0 ? -1 : grid_dim;
+    const int exit_x = ray.direction.x < 0 ? -1 : grid_dim;
+    const int exit_y = ray.direction.y < 0 ? -1 : grid_dim;
+    const int exit_z = ray.direction.z < 0 ? -1 : grid_dim;
 
-    int step_x = ray.direction.x < 0 ? -1 : 1;
-    int step_y = ray.direction.y < 0 ? -1 : 1;
-    int step_z = ray.direction.z < 0 ? -1 : 1;
+    const int step_x = ray.direction.x < 0 ? -1 : 1;
+    const int step_y = ray.direction.y < 0 ? -1 : 1;
+    const int step_z = ray.direction.z < 0 ? -1 : 1;
 
     Intersection intersection = Intersection::NonIntersection(ray);
     vector<Face> cur_cell;
@@ -278,9 +278,9 @@ Intersection Mesh::intersect_ray_grid(const Ray &ray, const Intersection &boundi
         }
 
         for (const Face &face: cur_cell) {
-            const vec3 &v0 = m_vertices[face.vertices.v1];
-            const vec3 &v1 = m_vertices[face.vertices.v2];
-            const vec3 &v2 = m_vertices[face.vertices.v3];
+            const vec3 &v0 = m_vertices[face.vertices->v1];
+            const vec3 &v1 = m_vertices[face.vertices->v2];
+            const vec3 &v2 = m_vertices[face.vertices->v3];
 
             const vec3 bary = intersect_ray_triangle(ray, v0, v1, v2);
             const float beta = bary.x;
@@ -293,9 +293,9 @@ Intersection Mesh::intersect_ray_grid(const Ray &ray, const Intersection &boundi
                 if (!intersection.is_hit() || t < intersection.get_t()) {
                     const vec3 normal = cross(v1 - v0, v2 - v0);
                     if (type == ObjType::Normals || type == ObjType::Textures) {
-                        const vec3 &n0 = m_normals[face.normals.v1];
-                        const vec3 &n1 = m_normals[face.normals.v2];
-                        const vec3 &n2 = m_normals[face.normals.v3];
+                        const vec3 &n0 = m_normals[face.normals->v1];
+                        const vec3 &n1 = m_normals[face.normals->v2];
+                        const vec3 &n2 = m_normals[face.normals->v3];
 
                         vec3 interp_normal = alpha * n0 + beta * n1 + gamma * n2;
                         if (dot(ray.direction, normal) * dot(ray.direction, interp_normal) < 0) {
@@ -303,9 +303,9 @@ Intersection Mesh::intersect_ray_grid(const Ray &ray, const Intersection &boundi
                         }
 
                         if (type == ObjType::Textures) {
-                            const vec2 &t0 = m_textures[face.textures.v1];
-                            const vec2 &t1 = m_textures[face.textures.v2];
-                            const vec2 &t2 = m_textures[face.textures.v3];
+                            const vec2 &t0 = m_textures[face.textures->v1];
+                            const vec2 &t1 = m_textures[face.textures->v2];
+                            const vec2 &t2 = m_textures[face.textures->v3];
                             const vec2 &uv = alpha * t0 + beta * t1 + gamma * t2;
                             intersection = Intersection(ray, interp_normal, t, uv.x, uv.y, true);
                         } else {

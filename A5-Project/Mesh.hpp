@@ -38,14 +38,13 @@ struct Triangle
     {}
 };
 
-struct Face
-{
-    Triangle vertices;
-    Triangle normals;
-    Triangle textures;
-    Face(Triangle vertices, Triangle normals, Triangle textures) : vertices(vertices), normals(normals), textures(textures) {}
-    Face(Triangle vertices, Triangle normals) : vertices(vertices), normals(normals), textures(vertices) {}
-    Face(Triangle vertices) : vertices(vertices), normals(vertices), textures(vertices) {}
+struct Face {
+    Triangle *vertices;
+    Triangle *normals;
+    Triangle *textures;
+    Face(Triangle *vertices, Triangle *normals, Triangle *textures) : vertices(vertices), normals(normals), textures(textures) {}
+    Face(Triangle *vertices, Triangle *normals) : vertices(vertices), normals(normals), textures(nullptr) {}
+    Face(Triangle *vertices) : vertices(vertices), normals(nullptr), textures(nullptr) {}
 };
 
 // A polygonal mesh.
@@ -60,7 +59,6 @@ private:
     std::vector<glm::vec3> m_normals;
     std::vector<glm::vec2> m_textures;
     std::vector<Face> m_faces;
-    // std::vector<Triangle> m_normal_faces;
 
     NonhierIrregularBox *bounding_box;
     bool skip_accel;
