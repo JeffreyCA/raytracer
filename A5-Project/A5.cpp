@@ -27,7 +27,7 @@ static const vec3 SKY_BLUE = vec3(0, 161, 254) / 255.0f;
 
 static const float SHADOW_BIAS = 0.005f;
 static const int GLOSSY_REFLECTION_RAYS = 20;
-static const int GLOSSY_REFRACTION_RAYS = 10;
+static const int GLOSSY_REFRACTION_RAYS = 20;
 static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
 

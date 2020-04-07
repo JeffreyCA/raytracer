@@ -26,6 +26,99 @@ Intersection Sphere::intersect(const Ray &ray) {
     return base_shape->intersect(ray);
 }
 
+Cone::~Cone() {}
+
+Intersection Cone::intersect(const Ray& ray) {
+    const double A = pow(ray.direction.x, 2) + pow(ray.direction.y, 2) - pow(ray.direction.z, 2);
+    const double B = 2 * (ray.origin.x * ray.direction.x + ray.origin.y * ray.direction.y - ray.origin.z * ray.direction.z);
+    const double C = pow(ray.origin.x, 2) + pow(ray.origin.y, 2) - pow(ray.origin.z, 2);
+
+    double roots[2];
+    const size_t num_roots = quadraticRoots(A, B, C, roots);
+
+    if (num_roots == 0) {
+        return Intersection::NonIntersection(ray);
+    } else if (num_roots == 1) {
+        const double min_root = roots[0];
+        const vec3 point = ray.get_point(min_root);
+        if (point.z <= z_max && point.z >= z_min) {
+            const vec3 normal = vec3(2 * point.x, 2 * point.y, -2 * point.z);
+            const float u = 0.5f + atan2(point.x, point.y) / (2 * M_PI);
+            const float v = -point.z / m_length;
+            return Intersection(ray, normal, min_root, u, v, min_root > 0);
+        }
+    } else {
+        const double min_t = std::min(roots[0], roots[1]);
+        const double max_t = std::max(roots[0], roots[1]);
+        const vec3 p1 = ray.get_point(min_t);
+        const vec3 p2 = ray.get_point(max_t);
+        const bool valid_t1 = p1.z >= z_min && p1.z <= z_max;
+        const bool valid_t2 = p2.z >= z_min && p2.z <= z_max;
+
+        if (!valid_t1 && !valid_t2) {
+            return Intersection::NonIntersection(ray);
+        } else if (valid_t1 && valid_t2) {
+            double min_root;
+            if (min_t < 0 && max_t > 0) {
+                min_root = max_t;
+            } else {
+                min_root = min_t;
+            }
+            const vec3 point = ray.get_point(min_root);
+            const vec3 normal = normalize(vec3(2 * point.x, 2 * point.y, -2 * point.z));
+            const float u = 0.5f + atan2(point.x, point.y) / (2 * M_PI);
+            const float v = -point.z / m_length;
+            return Intersection(ray, normal, min_root, u, v, min_root > 0);
+        } else {
+            const double z1 = ray.get_point(min_t).z;
+            const double z2 = ray.get_point(max_t).z;
+            const double larger_z = std::max(z1, z2);
+            const double smaller_z = std::min(z1, z2);
+            const bool smaller_in_larger_out = smaller_z <= z_max && smaller_z >= z_min && larger_z > z_max;
+            const bool larger_in_smaller_out = larger_z >= z_min && larger_z <= z_max && smaller_z < z_min;
+
+            if (smaller_in_larger_out || larger_in_smaller_out) {
+                // Intersection with cap
+                const double cap_t = (z_min - ray.origin.z) / ray.direction.z;
+                vec3 normal;
+
+                double t1;
+                double t2;
+                double min_root = 0;
+
+                if (valid_t1) {
+                    t1 = std::min(min_t, cap_t);
+                    t2 = std::max(min_t, cap_t);
+                } else {
+                    t1 = std::min(max_t, cap_t);
+                    t2 = std::max(max_t, cap_t);
+                }
+
+                if (t1 > 0) {
+                    // Smaller t value is positive
+                    min_root = t1;
+                } else if (t1 < 0 && t2 > 0) {
+                    // Smaller t value is negative, larger t value is positive (ray origin inside cone)
+                    min_root = t2;
+                }
+                const vec3 point = ray.get_point(min_root);
+                if (min_root == cap_t) {
+                    // Hit cap
+                    normal = vec3(0.0, 0.0, -1);
+                } else {
+                    // Hit lateral sides
+                    normal = normalize(vec3(2 * point.x, 2 * point.y, -2 * point.z));
+                }
+                const float u = 0.5f + atan2(point.x, point.y) / (2 * M_PI);
+                const float v = -point.z / m_length;
+                return Intersection(ray, normal, min_root, u, v, min_root > 0);
+            }
+        }
+    }
+
+    return Intersection::NonIntersection(ray);
+}
+
 Cube::Cube() {
     base_shape = new NonhierBox(vec3(0, 0, 0), 1.0);
 }
@@ -36,6 +129,62 @@ Cube::~Cube() {
 
 Intersection Cube::intersect(const Ray &ray) {
     return base_shape->intersect(ray);
+}
+
+Cylinder::~Cylinder() {}
+
+Intersection Cylinder::intersect(const Ray &ray) {
+    const double A = pow(ray.direction.x, 2) + pow(ray.direction.y, 2);
+    const double B = 2 * (ray.origin.x * ray.direction.x + ray.origin.y * ray.direction.y);
+    const double C = pow(ray.origin.x, 2) + pow(ray.origin.y, 2) - pow(m_radius, 2);
+
+    double roots[2];
+    const size_t root_count = quadraticRoots(A, B, C, roots);
+
+    if (root_count == 0) {
+        return Intersection::NonIntersection(ray);
+    } else if (root_count == 1) {
+        const double min_root = roots[0];
+        const vec3 point = ray.get_point(min_root);
+        if (point.z <= z_max && point.z >= z_min) {
+            const vec3 normal = normalize(vec3(point.x, point.y, 0));
+            return Intersection(ray, normal, min_root, min_root > 0);
+        }
+    } else if (root_count == 2) {
+        const double min_t = std::min(roots[0], roots[1]);
+        const double max_t = std::max(roots[0], roots[1]);
+        const double t1 = min_t;
+        const double t2 = max_t;
+        const vec3 p1 = ray.get_point(t1);
+        const vec3 p2 = ray.get_point(t2);
+
+        if (p1.z < z_min && p2.z >= z_min) {
+            // Hit back cap
+            const double min_root = t1 + (t2 - t1) * (p1.z - z_min) / (p1.z - p2.z);
+            const vec3 point = ray.get_point(min_root);
+            const vec3 normal = vec3(0, 0, -1);
+            const float u = 0.5f + atan2(point.x, point.y) / (2 * M_PI);
+            const float v = point.z / m_length + 0.5f;
+            return Intersection(ray, normal, min_root, u, v, min_root > 0);
+        } else if (p1.z >= z_min && p1.z <= z_max) {
+            // Hit lateral sides
+            const vec3 point = ray.get_point(t1);
+            const vec3 normal = normalize(vec3(point.x, point.y, 0));
+            const float u = 0.5f + atan2(point.x, point.y) / (2 * M_PI);
+            const float v = point.z / m_length + 0.5f;
+            return Intersection(ray, normal, t1, u, v, t1 > 0);
+        } else if (p1.z > z_max && p2.z <= z_max) {
+            // Hit front cap
+            const double min_root = t1 + (t2 - t1) * (p1.z - z_max) / (p1.z - p2.z);
+            const vec3 point = ray.get_point(min_root);
+            const vec3 normal = vec3(0, 0, 1);
+            const float u = 0.5f + atan2(point.x, point.y) / (2 * M_PI);
+            const float v = point.z / m_length + 0.5f;
+            return Intersection(ray, normal, min_root, u, v, min_root > 0);
+        }
+    }
+
+    return Intersection::NonIntersection(ray);
 }
 
 NonhierPlane::~NonhierPlane() {}

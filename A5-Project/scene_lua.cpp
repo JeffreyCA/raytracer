@@ -197,6 +197,48 @@ int gr_cube_cmd(lua_State* L)
   return 1;
 }
 
+// Create a Cone node
+extern "C"
+int gr_cone_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
+
+  const char* name = luaL_checkstring(L, 1);
+  double length = luaL_checknumber(L, 2);
+
+  data->node = new GeometryNode(name, new Cone(length));
+
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Create a Cylinder node
+extern "C"
+int gr_cylinder_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
+
+  const char* name = luaL_checkstring(L, 1);
+
+  double radius = luaL_checknumber(L, 2);
+  double length = luaL_checknumber(L, 3);
+
+  data->node = new GeometryNode(name, new Cylinder(radius, length));
+
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
 // Create a non-hierarchical Plane node
 extern "C"
 int gr_nh_plane_cmd(lua_State* L)
@@ -717,6 +759,8 @@ int gr_node_gc_cmd(lua_State* L)
 // If you want to add a new non-member function, add it HERE.
 static const luaL_Reg grlib_functions[] = {
   {"node", gr_node_cmd},
+  {"cone", gr_cone_cmd},
+  {"cylinder", gr_cylinder_cmd},
   {"sphere", gr_sphere_cmd},
   {"joint", gr_joint_cmd},
   {"material", gr_material_cmd},
