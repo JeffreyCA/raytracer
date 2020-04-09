@@ -27,7 +27,7 @@ static const vec3 SKY_BLUE = vec3(0, 161, 254) / 255.0f;
 
 static const float SHADOW_BIAS = 0.005f;
 static const int GLOSSY_REFLECTION_RAYS = 20;
-static const int GLOSSY_REFRACTION_RAYS = 20;
+static const int GLOSSY_REFRACTION_RAYS = 10;
 static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
 
@@ -218,7 +218,13 @@ vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits) 
 
     if (intersection.is_hit()) {
         PhongMaterial *material = intersection.get_material();
-        vec3 colour = material->m_kd * context.ambient;
+        vec3 colour;
+        
+        if (material->m_textured) {
+            colour = material->m_texture->get_colour(intersection.get_u(), intersection.get_v()) * context.ambient;
+        } else {
+            colour = material->m_kd * context.ambient;
+        }
 
         // Add diffuse and specular components
         if (material->m_kd != ZERO_VEC || material->m_textured) {

@@ -5,7 +5,7 @@ blue_mat = gr.material({0.0, 0.0, 1.0}, {0.5, 0.5, 0.5}, 1)
 black_mat = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
 gold_mat = gr.material({0.9, 0.8, 0.4}, {0.8, 0.8, 0.4}, 50)
 mirror_mat = gr.mirror_material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 100, 0)
-clear_mat = gr.clear_material({0.0, 0.0, 0.0}, {0.8, 0.8, 0.8}, 1, 0, 1.2)
+clear_mat = gr.clear_material({0.0, 0.0, 0.0}, {0.8, 0.8, 0.8}, 1, 0, 1.0)
 red_checkered_mat = gr.checker_material({1, 0, 0}, {0, 1, 0}, {0.5, 0.5, 0.5}, 10, 0)
 earth_mat = gr.image_material('earth.png', {0, 0, 0}, 10, false)
 stars_mat = gr.image_material('nightsky.png', {0, 0, 0}, 100, true)
@@ -22,10 +22,10 @@ box_length = 20.0
 
 cone = gr.cone('cone', 10)
 cone:scale(0.25, 0.25, 1)
-cone:rotate('y', 90)
-cone:translate(5, 0, -20)
+cone:rotate('x', 180)
+cone:translate(0, 0, -20)
 scene_root:add_child(cone)
-cone:set_material(red_checkered_mat)
+cone:set_material(clear_mat)
 
 light = gr.light({0, 0, 0}, {1, 1, 1}, {0, 0, 0})
 

@@ -46,4 +46,4 @@ for x = 1, 360 do
 	sky:rotate('y', 0.1)
 end
 
--- ffmpeg -framerate 60 -i 'sphere%03d.png' out.gif
+-- ffmpeg -i 'sphere%03d.png' -vf "fps=60,scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" output.gif
