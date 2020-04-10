@@ -1,17 +1,3 @@
-// Winter 2020
-
-/* //-------------------------------------------------------------------------
-//
-// CS488 -- Introduction to Computer Graphics
-//
-// polyroots.hpp/polyroots.cpp
-//
-// Utility functions to solve low-order polynomial equations efficiently
-// and robustly.  Very useful when writing ray-object intersection tests.
-// You don't need these functions in Assignment 3.
-//
-//------------------------------------------------------------------------- */
-
 #ifndef CS488_POLYROOTS_HPP
 #define CS488_POLYROOTS_HPP
 

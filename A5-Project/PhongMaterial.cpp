@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include "PhongMaterial.hpp"
 
 PhongMaterial::PhongMaterial(const glm::vec3 &kd, const glm::vec3 &ks,

@@ -1,5 +1,3 @@
-// Winter 2020
-
 #pragma once
 
 #include <iosfwd>

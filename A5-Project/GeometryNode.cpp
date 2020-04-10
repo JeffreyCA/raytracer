@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include "GeometryNode.hpp"
 #include <iostream>
 using namespace std;

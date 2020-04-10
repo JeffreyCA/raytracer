@@ -1,19 +1,5 @@
-// Winter 2020
-
-/* //-------------------------------------------------------------------------
-//
-// CS488 -- Introduction to Computer Graphics
-//
-// polyroots.hpp/polyroots.cpp
-//
-// Utility functions to solve low-order polynomial equations efficiently
-// and robustly.  Very useful when writing ray-object intersection tests.
-// You don't need these functions in Assignment 3.
-//
-//------------------------------------------------------------------------- */
-
 /*
-** File: PolyRoots.c
+** File: polyroots.cpp
 ** Purpose: Find the roots of polynomials of degree 4 or less.
 ** Author:  James Painter
 ** Last Modified: 27 January 1988
@@ -25,47 +11,6 @@
 **            CS-86-56,  November, 1986
 **
 ** Copyright (c), 1987 GRAIL, University of Washington
-**
-** $Revision: 1.2 $
-** $Date: 2004/04/29 20:20:08 $
-** $Locker:  $
-** $Log: polyroots.c,v $
-** Revision 1.2  2004/04/29 20:20:08  csk
-** *** empty log message ***
-**
-** Revision 1.1  2004/04/29 20:13:54  csk
-** *** empty log message ***
-**
-** Revision 1.1  2004/04/23 20:35:31  csk
-** *** empty log message ***
-**
-** Revision 1.1  2004/02/19 04:10:05  csk
-** *** empty log message ***
-**
-** Revision 1.1  2003/12/03 22:35:00  csk
-** HYello.
-**
-** Revision 1.2  2003/07/07 13:17:19  csk
-** Things.
-**
-** Revision 1.1  2003/07/05 03:54:18  csk
-** Whatever.
-**
-** Revision 1.1  2003/04/02 03:20:23  csk
-** Things.
-**
-** Revision 1.1  2003/03/28 22:09:03  csk
-** *** empty log message ***
-**
- * Revision 2.0  88/04/29  16:07:19  gem
- * *** empty log message ***
- * 
- * Revision 1.4  88/04/28  12:42:51  jamie
- * *** empty log message ***
- * 
- * Revision 1.3  88/02/01  18:41:46  jamie
- * Total rewrite to improve speed and stability.
- * 
 */
 
 /* Imports */

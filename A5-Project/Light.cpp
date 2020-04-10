@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include <iostream>
 
 #include <glm/ext.hpp>

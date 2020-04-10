@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include <iostream>
 #include "scene_lua.hpp"
 

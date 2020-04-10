@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include "Intersection.hpp"
 using namespace glm;
 

@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include <iostream>
 #include "Primitive.hpp"
 #include "polyroots.hpp"

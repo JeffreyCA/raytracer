@@ -1,10 +1,3 @@
-// Winter 2020
-
-//
-// CS488 - Introduction to Computer Graphics
-//
-// scene_lua.cpp
-//
 // Everything that's needed to parse a scene file using Lua.
 // You don't necessarily have to understand exactly everything that
 // goes on here, although it will be useful to have a reasonable idea

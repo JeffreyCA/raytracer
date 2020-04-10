@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include "Ray.hpp"
 #include <glm/gtx/io.hpp>
 

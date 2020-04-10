@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include "Image.hpp"
 
 #include <iostream>

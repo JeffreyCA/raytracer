@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include "SceneNode.hpp"
 
 #include "cs488-framework/MathUtils.hpp"
