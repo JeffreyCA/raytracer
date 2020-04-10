@@ -2,8 +2,6 @@
 
 includeDirList = { 
     "shared",
-    "shared/gl3w",
-    "shared/imgui",
     "shared/include"
 }
 
