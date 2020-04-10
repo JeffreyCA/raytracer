@@ -1,4 +1,4 @@
-// Winter 2020
+
 
 #include <iostream>
 #include <fstream>
@@ -41,6 +41,7 @@ vec3 CheckeredTexture::get_colour(float u, float v) {
 }
 
 ImageTexture::ImageTexture(const std::string &filename) {
+    std::cout << "Loading texture " << filename << std::endl;
     image = Image::loadPng(filename);
 }
 
