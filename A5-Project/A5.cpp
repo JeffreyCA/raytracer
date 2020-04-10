@@ -1,5 +1,3 @@
-// Winter 2020
-
 #include "A5.hpp"
 
 #include <iostream>
@@ -25,6 +23,10 @@ static const vec3 ZERO_VEC = vec3(0.0f);
 static const vec3 ONE_VEC = vec3(1, 1, 1);
 static const vec3 SKY_BLUE = vec3(0, 161, 254) / 255.0f;
 
+static const float ADAPTIVE_SS_DIM_FACTOR = 0.6f;
+static const float ADAPTIVE_SS_HALF_LIMIT = 0.0625f;
+static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 200;
+
 static const float SHADOW_BIAS = 0.005f;
 static const int GLOSSY_REFLECTION_RAYS = 20;
 static const int GLOSSY_REFRACTION_RAYS = 10;
@@ -38,7 +40,9 @@ static uniform_real_distribution<float> dist(0.0f, 1.0f);
 vec3 hsv_to_rgb(int H, float S, float V);
 struct Context;
 void A5_Render(SceneNode * root, Image & image, const vec3 &look_from, const vec3 &look_at, const vec3 &up, double fovy, const vec3 & ambient, const list<Light *> &lights);
-vec3 trace(Context &context, uint x, uint y, float x_offset, float y_offset);
+double colour_dist(const vec3 &e1, const vec3 &e2);
+vec3 trace(Context &context, float x, float y);
+vec3 supersample(Context &context, const vec3 &centre, float x, float y, float half_size);
 vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits);
 vec3 background_colour(Context &context, const Ray &ray);
 Intersection hit(const Ray &ray, SceneNode *root);
@@ -62,6 +66,17 @@ struct Context {
     Context(SceneNode *root, const mat4 &TSRT, const vec3 &look_from, const vec3 &ambient, const list<Light *> &lights, float nx, float ny, double fov): root(root), TSRT(TSRT), look_from(look_from), ambient(ambient), lights(lights), nx(nx), ny(ny), fov(fov) {}
 };
 
+// https://www.compuphase.com/cmetric.htm
+double colour_dist(const vec3 &e1, const vec3 &e2) {
+    const vec3 e1_255 = 255.0f * e1;
+    const vec3 e2_255 = 255.0f * e2;
+    const long rmean = ((long) e1_255.r + (long) e2_255.r) / 2;
+    const long r = (long)e1_255.r - (long)e2_255.r;
+    const long g = (long)e1_255.g - (long)e2_255.g;
+    const long b = (long)e1_255.b - (long)e2_255.b;
+    return std::sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
+}
+
 void A5_Render(
     // What to render  
     SceneNode *root,
@@ -82,18 +97,18 @@ void A5_Render(
   cout << "Calling A5_Render(\n" <<
           "\t" << *root <<
           "\t" << "Image(width:" << image.width() << ", height:" << image.height() << ")\n"
-          "\t" << "eye (look from):  " << to_string(look_from) << endl <<
-          "\t" << "view (look at): " << to_string(look_at) << endl <<
-          "\t" << "up:   " << to_string(up) << endl <<
+          "\t" << "eye (look from):  " << look_from << endl <<
+          "\t" << "view (look at): " << look_at << endl <<
+          "\t" << "up:   " << up << endl <<
           "\t" << "fovy: " << fovy << endl <<
-          "\t" << "ambient: " << to_string(ambient) << endl <<
+          "\t" << "ambient: " << ambient << endl <<
           "\t" << "lights{" << endl;
 
-    for(const Light * light : lights) {
+    for (const Light * light : lights) {
         cout << "\t\t" <<  *light << endl;
     }
     cout << "\t}" << endl;
-     cout <<")" << endl;
+    cout <<")" << endl;
 
     const size_t nx = image.width();
     const size_t ny = image.height();
@@ -143,16 +158,9 @@ void A5_Render(
                     cout << "\rProgress: " << progress << "%" << flush;
                 }
                 
-                vec3 colour = trace(c, x, y, 0, 0);
-                colour += trace(c, x, y, -0.5f, -0.5f);
-                colour += trace(c, x, y, -0.5f, 0);
-                colour += trace(c, x, y, -0.5f, 0.5f);
-                colour += trace(c, x, y, 0, -0.5f);
-                colour += trace(c, x, y, 0, 0.5f);
-                colour += trace(c, x, y, 0.5f, -0.5f);
-                colour += trace(c, x, y, 0.5f, 0);
-                colour += trace(c, x, y, 0.5f, 0.5f);
-                colour /= 9.0f;
+                const vec3 centre_colour = trace(c, x, y);
+                const vec3 colour = supersample(c, centre_colour, x, y, 0.5f);
+                
                 image(x, y, 0) = (double)colour.x;
                 image(x, y, 1) = (double)colour.y;
                 image(x, y, 2) = (double)colour.z;
@@ -179,16 +187,8 @@ void A5_Render(
             cout << "\rProgress: " << progress << "%" << flush;
         }
         for (uint x = 0; x < nx; ++x) {
-            vec3 colour = trace(c, x, y, 0, 0);
-            colour += trace(c, x, y, -0.5f, -0.5f);
-            colour += trace(c, x, y, -0.5f, 0);
-            colour += trace(c, x, y, -0.5f, 0.5f);
-            colour += trace(c, x, y, 0, -0.5f);
-            colour += trace(c, x, y, 0, 0.5f);
-            colour += trace(c, x, y, 0.5f, -0.5f);
-            colour += trace(c, x, y, 0.5f, 0);
-            colour += trace(c, x, y, 0.5f, 0.5f);
-            colour /= 9.0f;
+            const vec3 centre_colour = trace(c, x, y);
+            const vec3 colour = supersample(c, centre_colour, x, y, 0.5f);
             image(x, y, 0) = (double)colour.x;
             image(x, y, 1) = (double)colour.y;
             image(x, y, 2) = (double)colour.z;
@@ -199,15 +199,60 @@ void A5_Render(
 #endif
 }
 
-/*
- * Compute the colour at (x + offset, y + offset).
- */
-vec3 trace(Context &context, uint x, uint y, float x_offset, float y_offset) {
+vec3 trace(Context &context, float x, float y) {
     const mat4 &TSRT = context.TSRT;
     const vec3 &look_from = context.look_from;
-    const vec4 world = TSRT * vec4(x + x_offset, y + y_offset, 0, 1);
+    const vec4 world = TSRT * vec4(x, y, 0, 1);
     const Ray ray = Ray(look_from, vec3(world) - look_from);
     return ray_colour(context, ray, x, y, 0);
+}
+
+/*
+ * Use adaptive supersampling technique where at least 5 rays are cast to each pixel.
+ * One initial ray is cast to the centre of the pixel. The pixel is then divided into four quadrants,
+ * where four additional rays are cast to their centres. If the colour difference between the results
+ * of the additional rays and the centre colour is large enough, then the quadrants are subdivided and
+ * the process repeats up until a threshold.
+ * 
+ * Compile with SHOW_ADAPTIVE to render a dimmed scene with pixels that were further supersampled coloured
+ * as red.
+ */
+vec3 supersample(Context &context, const vec3 &centre, float x, float y, float half_size) {
+    if (half_size <= ADAPTIVE_SS_HALF_LIMIT) {
+        return centre;
+    }
+
+    const float quarter = half_size / 2.0f;
+    vec3 top_left = trace(context, x - quarter, y - quarter);
+    vec3 top_right = trace(context, x + quarter, y - quarter);
+    vec3 bottom_right = trace(context, x + quarter, y + quarter);
+    vec3 bottom_left = trace(context, x - quarter, y + quarter);
+    bool ss = false;
+
+    if (colour_dist(top_left, centre) > ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD) {
+        top_left = supersample(context, top_left, x - quarter, y - quarter, half_size / 2.0f);
+        ss = true;
+    }
+    if (colour_dist(top_right, centre) > ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD) {
+        top_right = supersample(context, top_right, x + quarter, y - quarter, half_size / 2.0f);
+        ss = true;
+    }
+    if (colour_dist(bottom_right, centre) > ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD) {
+        bottom_right = supersample(context, bottom_right, x + quarter, y + quarter, half_size / 2.0f);
+        ss = true;
+    }
+    if (colour_dist(bottom_left, centre) > ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD) {
+        bottom_left = supersample(context, bottom_left, x - quarter, y + quarter, half_size / 2.0f);
+        ss = true;
+    }
+
+#ifdef SHOW_ADAPTIVE
+    if (ss) {
+        return vec3(1, 0, 0);
+    }
+    return ADAPTIVE_SS_DIM_FACTOR * (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
+#endif
+    return (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
 }
 
 /*
@@ -314,7 +359,7 @@ Ray get_perturbed_ray(const Ray &ray, const float glossiness) {
 vec3 compute_diffuse_specular(Context &context, const Ray &ray, const Intersection &intersection, PhongMaterial *mat) {
     const vec3 normal = dot(ray.direction, intersection.get_N()) > 0 ? -intersection.get_N() : intersection.get_N();
     const vec3 point = intersection.get_point();
-    vec3 colour = vec3(0, 0, 0);
+    vec3 colour = ZERO_VEC;
 
     for (const Light *light: context.lights) {
         const vec3 light_pos = light->position;
