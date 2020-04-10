@@ -12,7 +12,7 @@ libDirectories = {
 if os.get() == "macosx" then
     linkLibs = {
         "lua",
-		"lodepng"
+        "lodepng"
     }
 end
 
@@ -21,7 +21,8 @@ if os.get() == "linux" then
         "lua",
         "lodepng",
         "stdc++",
-        "dl"
+        "dl",
+        "pthread"
     }
 end
 
@@ -31,7 +32,7 @@ end
 
 buildOptions = {"-std=c++11 -O2 -Wall -Wextra -Weffc++ -DPARALLEL"}
 
-solution "Raytracer"
+solution "raytrace"
     configurations { "Debug", "Release" }
 
     project "raytrace"
