@@ -13,25 +13,28 @@
 
 #include <future>
 #include <thread>
-#include <mutex>
 #include <random>
 
 using namespace std;
 using namespace glm;
 
-static const vec3 ZERO_VEC = vec3(0.0f);
-static const vec3 ONE_VEC = vec3(1, 1, 1);
-static const vec3 SKY_BLUE = vec3(0, 161, 254) / 255.0f;
+static const bool PARALLEL = true;
+static const bool ADAPTIVE_SS = true; // If false, supersampling is disabled
+static const bool ADAPTIVE_SS_SHOW_PIXELS = false;
 
 static const float ADAPTIVE_SS_DIM_FACTOR = 0.6f;
 static const float ADAPTIVE_SS_HALF_LIMIT = 0.0625f;
-static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 200;
+static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 150;
 
 static const float SHADOW_BIAS = 0.005f;
 static const int GLOSSY_REFLECTION_RAYS = 20;
 static const int GLOSSY_REFRACTION_RAYS = 10;
 static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
+
+static const vec3 ZERO_VEC = vec3(0.0f);
+static const vec3 ONE_VEC = vec3(1, 1, 1);
+static const vec3 SKY_BLUE = vec3(0, 161, 254) / 255.0f;
 
 static random_device rd;
 static default_random_engine mt(rd());
@@ -135,68 +138,79 @@ void render(
     // Use Context struct to hold all constant rendering information
     Context c(root, TSRT, look_from, ambient, lights, nx, ny, fovy);
 
-#ifdef PARALLEL
-    uint cores = thread::hardware_concurrency();
-    vector<future<void>> futures;
-    cout << endl;
+    if (PARALLEL) {
+        uint cores = thread::hardware_concurrency();
+        vector<future<void>> futures;
+        cout << endl;
 
-    // Divide up work evenly for each core
-    for (uint thread_id = 0; thread_id < cores; ++thread_id) {
-        futures.push_back(async([](Context &c, Image &image, size_t nx, size_t ny, uint thread_id, uint cores) {
-            const size_t pixels = nx * ny;
-            uint prev_pct = 0;
-            uint progress = 0;
+        // Divide up work evenly for each core
+        for (uint thread_id = 0; thread_id < cores; ++thread_id) {
+            futures.push_back(async([](Context &c, Image &image, size_t nx, size_t ny, uint thread_id, uint cores) {
+                const size_t pixels = nx * ny;
+                uint prev_pct = 0;
+                uint progress = 0;
 
-            for (size_t j = thread_id; j < pixels; j += cores) {
-                const uint x = j % ny;
-                const uint y = j / ny;
-                progress = (uint) ((float)y / ny * 100);
-                
-                // For simplicity, display progress for thread 0, and show multiples of 5 only
-                if (thread_id == 0 && progress != prev_pct && progress % 5 == 0) {
-                    prev_pct = progress;
-                    cout << "\rProgress: " << progress << "%" << flush;
+                for (size_t j = thread_id; j < pixels; j += cores) {
+                    const uint x = j % ny;
+                    const uint y = j / ny;
+                    progress = (uint) ((float)y / ny * 100);
+                    
+                    // For simplicity, display progress for thread 0, and show multiples of 5 only
+                    if (thread_id == 0 && progress != prev_pct && progress % 5 == 0) {
+                        prev_pct = progress;
+                        cout << "\rProgress: " << progress << "%" << flush;
+                    }
+
+                    vec3 colour;
+                    if (ADAPTIVE_SS) {
+                        const vec3 centre_colour = trace(c, x, y);
+                        colour = supersample(c, centre_colour, x, y, 0.5f);
+                    } else {
+                        colour = trace(c, x, y);
+                    }
+
+                    image(x, y, 0) = (double)colour.x;
+                    image(x, y, 1) = (double)colour.y;
+                    image(x, y, 2) = (double)colour.z;
                 }
-                
-                const vec3 centre_colour = trace(c, x, y);
-                const vec3 colour = supersample(c, centre_colour, x, y, 0.5f);
-                
+            }, ref(c), ref(image), nx, ny, thread_id, cores));
+        }
+
+        // Wait until all jobs are finished
+        for (auto &future : futures) {
+            future.get();
+        }
+        cout << "\rProgress: 100%" << flush;
+        cout << endl;
+    } else {
+        uint prev_pct = 0;
+        uint progress = 0;
+        cout << endl;
+
+        // Process pixels in serial
+        for (uint y = 0; y < ny; ++y) {
+            progress = (uint) ((float)y / ny * 100);
+            if (progress != prev_pct && progress % 5 == 0) {
+                prev_pct = progress;
+                cout << "\rProgress: " << progress << "%" << flush;
+            }
+            for (uint x = 0; x < nx; ++x) {
+                vec3 colour;
+                if (ADAPTIVE_SS) {
+                    const vec3 centre_colour = trace(c, x, y);
+                    colour = supersample(c, centre_colour, x, y, 0.5f);
+                } else {
+                    colour = trace(c, x, y);
+                }
+
                 image(x, y, 0) = (double)colour.x;
                 image(x, y, 1) = (double)colour.y;
                 image(x, y, 2) = (double)colour.z;
             }
-        }, ref(c), ref(image), nx, ny, thread_id, cores));
-    }
-
-    // Wait until all jobs are finished
-    for (auto &future : futures) {
-        future.get();
-    }
-    cout << "\rProgress: 100%" << flush;
-    cout << endl;
-#else
-    uint prev_pct = 0;
-    uint progress = 0;
-    cout << endl;
-
-    // Process pixels in serial
-    for (uint y = 0; y < ny; ++y) {
-        progress = (uint) ((float)y / ny * 100);
-        if (progress != prev_pct && progress % 5 == 0) {
-            prev_pct = progress;
-            cout << "\rProgress: " << progress << "%" << flush;
         }
-        for (uint x = 0; x < nx; ++x) {
-            const vec3 centre_colour = trace(c, x, y);
-            const vec3 colour = supersample(c, centre_colour, x, y, 0.5f);
-            image(x, y, 0) = (double)colour.x;
-            image(x, y, 1) = (double)colour.y;
-            image(x, y, 2) = (double)colour.z;
-        }
+        cout << "\rProgress: 100%" << flush;
+        cout << endl;
     }
-    cout << "\rProgress: 100%" << flush;
-    cout << endl;
-#endif
 }
 
 vec3 trace(Context &context, float x, float y) {
@@ -246,13 +260,14 @@ vec3 supersample(Context &context, const vec3 &centre, float x, float y, float h
         ss = true;
     }
 
-#ifdef SHOW_ADAPTIVE
-    if (ss) {
-        return vec3(1, 0, 0);
+    if (ADAPTIVE_SS_SHOW_PIXELS) {
+        if (ss) {
+            return vec3(1, 0, 0);
+        }
+        return ADAPTIVE_SS_DIM_FACTOR * (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
+    } else {
+        return (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
     }
-    return ADAPTIVE_SS_DIM_FACTOR * (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
-#endif
-    return (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
 }
 
 /*

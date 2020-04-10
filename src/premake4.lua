@@ -30,7 +30,7 @@ if not os.isfile("out") then
     os.mkdir("out")
 end
 
-buildOptions = {"-std=c++11 -O2 -Wall -Wextra -Weffc++ -DPARALLEL"}
+buildOptions = {"-std=c++11 -O2 -Wall -Wextra -Weffc++"}
 
 solution "raytrace"
     configurations { "Debug", "Release" }
