@@ -49,7 +49,7 @@
 #include "Material.hpp"
 #include "Texture.hpp"
 #include "PhongMaterial.hpp"
-#include "A5.hpp"
+#include "Raytrace.hpp"
 
 typedef std::map<std::string,Mesh*> MeshMap;
 static MeshMap mesh_map;
@@ -469,8 +469,10 @@ int gr_render_cmd(lua_State* L)
   }
 
 	Image im( width, height);
-	A5_Render(root->node, im, eye, view, up, fov, ambient, lights);
-    im.savePng( filename );
+	render(root->node, im, eye, view, up, fov, ambient, lights);
+  std::string outFilename = "out/";
+  outFilename += filename;
+  im.savePng(outFilename);
 
 	return 0;
 }

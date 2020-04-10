@@ -29,6 +29,6 @@ following:
 
 Next we can build the actual raytracing program:
 
-    /raytracer$ cd A5-Project/
-    /raytracer/A5-Project$ premake4 gmake
-    /raytracer/A5-Project$ make
+    /raytracer$ cd src/
+    /raytracer/src$ premake4 gmake
+    /raytracer/src$ make

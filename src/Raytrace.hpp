@@ -6,7 +6,7 @@
 #include "Light.hpp"
 #include "Image.hpp"
 
-void A5_Render(
+void render(
     // What to render
     SceneNode * root,
 

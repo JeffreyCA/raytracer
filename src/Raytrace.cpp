@@ -1,4 +1,4 @@
-#include "A5.hpp"
+#include "Raytrace.hpp"
 
 #include <iostream>
 
@@ -39,7 +39,7 @@ static uniform_real_distribution<float> dist(0.0f, 1.0f);
 
 vec3 hsv_to_rgb(int H, float S, float V);
 struct Context;
-void A5_Render(SceneNode * root, Image & image, const vec3 &look_from, const vec3 &look_at, const vec3 &up, double fovy, const vec3 & ambient, const list<Light *> &lights);
+void render(SceneNode *root, Image & image, const vec3 &look_from, const vec3 &look_at, const vec3 &up, double fovy, const vec3 & ambient, const list<Light *> &lights);
 double colour_dist(const vec3 &e1, const vec3 &e2);
 vec3 trace(Context &context, float x, float y);
 vec3 supersample(Context &context, const vec3 &centre, float x, float y, float half_size);
@@ -77,7 +77,7 @@ double colour_dist(const vec3 &e1, const vec3 &e2) {
     return std::sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
 }
 
-void A5_Render(
+void render(
     // What to render  
     SceneNode *root,
 
@@ -94,7 +94,7 @@ void A5_Render(
     const vec3 &ambient,
     const list<Light *> &lights
 ) {
-  cout << "Calling A5_Render(\n" <<
+  cout << "Calling render(\n" <<
           "\t" << *root <<
           "\t" << "Image(width:" << image.width() << ", height:" << image.height() << ")\n"
           "\t" << "eye (look from):  " << look_from << endl <<
