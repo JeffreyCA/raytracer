@@ -22,10 +22,12 @@ box_length = 20.0
 
 cone = gr.cone('cone', 10)
 cone:scale(0.25, 0.25, 1)
-cone:rotate('x', 180)
-cone:translate(0, 0, -20)
+cone:rotate('y', 90)
+cone:rotate('z', 45)
+cone:rotate('x', 30)
+cone:translate(5, 5, -20)
 scene_root:add_child(cone)
-cone:set_material(clear_mat)
+cone:set_material(gold_mat)
 
 light = gr.light({0, 0, 0}, {1, 1, 1}, {0, 0, 0})
 
