@@ -7,9 +7,9 @@ black_mat = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
 gold_mat = gr.material({0.9, 0.8, 0.4}, {0.8, 0.8, 0.4}, 50)
 purple_mat = gr.material({0.5, 0.0, 0.5}, {0.4, 0.4, 0.4}, 10000)
 
-refract_mat = gr.clear_material({0, 0, 0}, {0.85, 0.85, 0.85}, 100, 0, 1.0)
-refract_mat2 = gr.clear_material({0, 0, 0}, {0.85, 0.85, 0.85}, 100, 0, 1.1)
-refract_mat3 = gr.clear_material({0, 0, 0}, {0.85, 0.85, 0.85}, 100, 0, 1.3)
+refract_mat = gr.clear_material({0, 0, 0}, {0.85, 0.85, 0.85}, 100, 25, 1.0)
+refract_mat2 = gr.clear_material({0, 0, 0}, {0.9, 0.9, 0.9}, 100, 30, 1.1)
+refract_mat3 = gr.clear_material({0, 0, 0}, {0.9, 0.9, 0.9}, 100, 20, 1.3)
 red_checkered_mat = gr.checker_material({1, 0, 0}, {1, 1, 1}, {0.5, 0.5, 0.5}, 10, 0)
 
 scene_root = gr.node('root')
@@ -85,6 +85,6 @@ light_2 = gr.light({-1.0, 2.0, -5}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0}
 
 ambient = 0.3
 
-gr.render(scene_root, 'refraction.png', 500, 500,
+gr.render(scene_root, 'glossy-refraction.png', 500, 500,
 	  {0.0, -1.0, 0.0}, {0, -1.5, -box_length / 2.0}, {0, 1, 0}, 40,
 	  {ambient, ambient, ambient}, {light_2})
