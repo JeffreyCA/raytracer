@@ -40,6 +40,29 @@ vec3 CheckeredTexture::get_colour(float u, float v) {
     }
 }
 
+StripedTexture::StripedTexture(vec3 colour_1, vec3 colour_2, float scale_factor, bool horizontal) : colour_1(colour_1), colour_2(colour_2), scale_factor(scale_factor), horizontal(horizontal) {}
+
+StripedTexture::~StripedTexture() {}
+
+vec3 StripedTexture::get_colour(float u, float v) {
+    const int u2 = (int) std::round(u * scale_factor);
+    const int v2 = (int) std::round(v * scale_factor);
+
+    if (horizontal) {
+        if (u2 % 2 == 0) {
+            return colour_1;
+        } else {
+            return colour_2;
+        }
+    } else {
+        if (v2 % 2 == 0) {
+            return colour_1;
+        } else {
+            return colour_2;
+        }
+    }
+}
+
 ImageTexture::ImageTexture(const std::string &filename, float width_factor, float height_factor): width_factor(width_factor), height_factor(height_factor) {
     std::cout << "Loading texture " << filename << std::endl;
     image = Image::loadPng(filename);

@@ -7,7 +7,7 @@ gold_mat = gr.material({0.9, 0.8, 0.4}, {0.8, 0.8, 0.4}, 50)
 mirror_mat = gr.mirror_material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 100, 0)
 glass_mat = gr.clear_material({0.7, 0.7, 0.7}, {0.5, 0.5, 0.5}, 10000, 0, 1.0)
 water_mat = gr.clear_material({186/510, 221/510, 248/510}, {0.6, 0.6, 0.6}, 10000, 0, 1.95)
-red_checkered_mat = gr.checker_material({1, 0, 0}, {1, 1, 1}, {0.1, 0.1, 0.1}, 8, 10000)
+red_checkered_mat = gr.stripe_material({1, 0, 0}, {1, 1, 1}, {0.1, 0.1, 0.1}, 8, true, 10000)
 
 mat1 = gr.material({0.7, 1.0, 0.7}, {0.5, 0.7, 0.5}, 50)
 mat2 = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
@@ -51,7 +51,7 @@ scene_root:add_child(main)
 
 light = gr.light({5, -2, 0}, {1, 1, 1}, {1, 0, 0})
 
-ambient = 0.3
+ambient = 0.4
 
 gr.render(scene_root, 'cylinder.png', 500, 500,
 	  {0.0, 0.0, 5.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
