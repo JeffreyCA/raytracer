@@ -15,6 +15,7 @@ using namespace std;
 
 #define GRID_DIM 28
 
+static const float SKIP_GRID_ACCEL = false;
 static const float EPSILON = 0.0001f;
 
 Mesh::Mesh(const std::string& fname, ObjType type)
@@ -95,9 +96,12 @@ Mesh::Mesh(const std::string& fname, ObjType type)
     if (dim.x < EPSILON || dim.y < EPSILON || dim.z < EPSILON) {
         cout << "Skipped grid acceleration for " << fname << endl;
         skip_accel = true;
-        return;
     } else {
-        skip_accel = false;
+        skip_accel = SKIP_GRID_ACCEL;
+    }
+
+    if (skip_accel) {
+        return;
     }
 
     // Setup grid acceleration structure params
