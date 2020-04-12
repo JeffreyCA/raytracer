@@ -49,6 +49,10 @@ Some sample renders can be found in [`src/out/`](src/out/) and [`src/showcase/`]
 |:---:|:---:|:---:|
 |Primitives|Mesh (flat shading)|Mesh (Phong shading)|
 
+| ![Regular and glossy reflection](src/out/reflection.png)  | ![Regular refraction](src/out/refraction.png) | ![Glossy refraction](src/out/glossy-refraction.png) |
+|:---:|:---:|:---:|
+|Regular and glossy reflection|Regular refraction|Glossy refraction|
+
 | ![Texture mapping (primitives)](src/out/wall-ball.png) | ![Texture mapping (meshes)](src/out/highway.png) |
 |:---:|:---:|
 |Texture mapping (primitives)|Texture mapping (meshes)|
