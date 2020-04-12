@@ -43,8 +43,12 @@ Invoking the raytracer is simple. Simply execute the `raytrace` binary, passing 
 The [`src/Assets`](src/Assets) directory contains some scene definitions, meshes, and textures used to produce the sample renders below. Some of the scenes were from the original CS 488 skeleton code.
 
 ## Sample renders
-Some sample renders can be found in [`out/`](src/out/) and [`showcase/`](src/showcase/).
+Some sample renders can be found in [`src/out/`](src/out/) and [`src/showcase/`](src/showcase/).
 
-| ![Primitives](src/out/primitives.png)  | ![Earth in a box](src/out/plane.png) | ![Wooden Car](src/out/car.png) |
+| ![Primitives](src/out/primitives.png)  | ![Mesh (flat shading)](src/out/cow-flat.png) | ![Mesh (Phong shading)](src/out/cow-phong.png) |
 |:---:|:---:|:---:|
-|Primitives|Earth in a box|Wooden car|
+|Primitives|Mesh (flat shading)|Mesh (Phong shading)|
+
+| ![Texture mapping (primitives)](src/out/wall-ball.png) | ![Texture mapping (meshes)](src/out/highway.png) |
+|:---:|:---:|
+|Texture mapping (primitives)|Texture mapping (meshes)|
