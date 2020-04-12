@@ -22,10 +22,12 @@ private:
 
 class ImageTexture : public Texture {
 public:
-    ImageTexture(const std::string &filename);
+    ImageTexture(const std::string &filename, float width_factor, float height_factor);
     virtual ~ImageTexture();
     glm::vec3 get_colour(float u, float v) override;
 private:
     Image image;
+    float width_factor;
+    float height_factor;
 };
 

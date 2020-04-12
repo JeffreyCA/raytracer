@@ -40,7 +40,7 @@ vec3 CheckeredTexture::get_colour(float u, float v) {
     }
 }
 
-ImageTexture::ImageTexture(const std::string &filename) {
+ImageTexture::ImageTexture(const std::string &filename, float width_factor, float height_factor): width_factor(width_factor), height_factor(height_factor) {
     std::cout << "Loading texture " << filename << std::endl;
     image = Image::loadPng(filename);
 }
@@ -48,11 +48,12 @@ ImageTexture::ImageTexture(const std::string &filename) {
 ImageTexture::~ImageTexture() {}
 
 vec3 ImageTexture::get_colour(float u, float v) {
-    const uint width = image.width();
-    const uint height = image.height();
-    const uint x = glm::clamp((uint) std::round(u * width), (uint) 0, (uint) width - 1);
-    const uint y = glm::clamp((uint) std::round(v * height), (uint) 0, (uint) height - 1);
-    
+    const uint image_width = image.width();
+    const uint image_height = image.height();
+
+    const uint x = (uint) std::round(u * width_factor * image_width) % image_width;
+    const uint y = (uint) std::round(v * height_factor * image_height) % image_height;
+
     const double r = image(x, y, 0);
     const double g = image(x, y, 1);
     const double b = image(x, y, 2);

@@ -596,13 +596,16 @@ int gr_image_material_cmd(lua_State* L)
   data->material = 0;
 
   const char* filename = luaL_checkstring(L, 1);
+  double factor[2];
+  get_tuple(L, 2, factor, 2);
+
   double ks[3];
-  get_tuple(L, 2, ks, 3);
+  get_tuple(L, 3, ks, 3);
 
-  double shininess = luaL_checknumber(L, 3);
-  bool ignore_lighting = lua_toboolean(L, 4);
+  double shininess = luaL_checknumber(L, 4);
+  bool ignore_lighting = lua_toboolean(L, 5);
 
-  ImageTexture *texture = new ImageTexture(filename);
+  ImageTexture *texture = new ImageTexture(filename, factor[0], factor[1]);
 
   data->material = new PhongMaterial(texture,
                                      glm::vec3(ks[0], ks[1], ks[2]),
