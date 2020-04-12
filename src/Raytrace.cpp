@@ -222,10 +222,10 @@ vec3 trace(Context &context, float x, float y) {
 }
 
 /*
- * Use adaptive supersampling technique where at least 5 rays are cast to each pixel.
- * One initial ray is cast to the centre of the pixel. The pixel is then divided into four quadrants,
- * where four additional rays are cast to their centres. If the colour difference between the results
- * of the additional rays and the centre colour is large enough, then the quadrants are subdivided and
+ * Adaptive supersampling technique where at least 4 rays are cast to each pixel.
+ * The pixel is then divided into four quadrants, where four additional rays are cast
+ * to their centres. If the colour difference between the results of the additional rays
+ * and their average colour is large enough, then the quadrants are subdivided and
  * the process repeats up until a threshold.
  * 
  * Compile with SHOW_ADAPTIVE to render a dimmed scene with pixels that were further supersampled coloured
@@ -241,6 +241,8 @@ vec3 supersample(Context &context, const vec3 &centre, float x, float y, float h
     vec3 top_right = trace(context, x + quarter, y - quarter);
     vec3 bottom_right = trace(context, x + quarter, y + quarter);
     vec3 bottom_left = trace(context, x - quarter, y + quarter);
+    const vec3 avg = (top_left + top_right + bottom_right + bottom_left) / 4.0f;
+
     bool ss = false;
 
     if (colour_dist(top_left, centre) > ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD) {
@@ -264,9 +266,9 @@ vec3 supersample(Context &context, const vec3 &centre, float x, float y, float h
         if (ss) {
             return vec3(1, 0, 0);
         }
-        return ADAPTIVE_SS_DIM_FACTOR * (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
+        return ADAPTIVE_SS_DIM_FACTOR * (top_left + top_right + bottom_right + bottom_left) / 4.0f;
     } else {
-        return (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
+        return (top_left + top_right + bottom_right + bottom_left) / 4.0f;
     }
 }
 
@@ -281,7 +283,7 @@ vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits) 
         vec3 colour;
         
         if (material->m_textured) {
-            colour = material->m_texture->get_colour(intersection.get_u(), intersection.get_v()) * context.ambient;
+            colour = material->m_texture->get_colour(intersection.get_u(), 1.0f - intersection.get_v()) * context.ambient;
         } else {
             colour = material->m_kd * context.ambient;
         }
@@ -404,7 +406,7 @@ vec3 compute_diffuse_specular(Context &context, const Ray &ray, const Intersecti
             // Diffuse
             vec3 diffuse_colour;
             if (mat->m_textured) {
-                diffuse_colour = mat->m_texture->get_colour(intersection.get_u(), intersection.get_v());
+                diffuse_colour = mat->m_texture->get_colour(intersection.get_u(), 1.0f - intersection.get_v());
             } else {
                 diffuse_colour = mat->m_kd;
             }
