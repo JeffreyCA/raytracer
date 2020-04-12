@@ -5,11 +5,9 @@ blue_mat = gr.material({0.0, 0.0, 1.0}, {0.5, 0.5, 0.5}, 1)
 black_mat = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
 gold_mat = gr.material({0.9, 0.8, 0.4}, {0.8, 0.8, 0.4}, 50)
 mirror_mat = gr.mirror_material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 100, 0)
-clear_mat = gr.clear_material({0.5, 0.5, 0.5}, {0.2, 0.2, 0.2}, 500, 0, 1.3)
-red_checkered_mat = gr.checker_material({1, 0, 0}, {0, 1, 0}, {0.5, 0.5, 0.5}, 10, 0)
-earth_mat = gr.image_material('earth.png', {0, 0, 0}, 10, false)
-stars_mat = gr.image_material('nightsky.png', {0, 0, 0}, 100, true)
-wood_mat = gr.image_material('wood.png', {0, 0, 0}, 100, true)
+glass_mat = gr.clear_material({0.7, 0.7, 0.7}, {0.5, 0.5, 0.5}, 10000, 0, 1.0)
+water_mat = gr.clear_material({186/510, 221/510, 248/510}, {0.6, 0.6, 0.6}, 10000, 0, 1.95)
+red_checkered_mat = gr.checker_material({1, 0, 0}, {1, 1, 1}, {0.1, 0.1, 0.1}, 8, 10000)
 
 mat1 = gr.material({0.7, 1.0, 0.7}, {0.5, 0.7, 0.5}, 50)
 mat2 = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
@@ -21,39 +19,40 @@ box_height = 10.0
 box_width = 10.0
 box_length = 20.0
 
-cylinder = gr.cylinder('cylinder', 3, 5)
-scene_root:add_child(cylinder)
-cylinder:rotate('x', 90)
-cylinder:translate(0, 0, -20)
-cylinder:set_material(clear_mat)
+plane = gr.nh_plane('black')
+plane:scale(500, 500, 1)
+plane:translate(0, 0, -50)
+scene_root:add_child(plane)
+plane:set_material(black_mat)
 
-cylinder2 = gr.cylinder('cylinder2', 0.25, 9)
-scene_root:add_child(cylinder2)
-cylinder2:rotate('y', 30)
-cylinder2:rotate('x', 90)
-cylinder2:translate(0, 0, -20)
-cylinder2:set_material(white_mat)
+main = gr.node('main')
+glass = gr.cylinder('glass', 2, 5)
+main:add_child(glass)
+glass:scale(0.2, 0.2, 0.2)
+glass:rotate('x', 90)
+glass:translate(0, 0, 2)
+glass:set_material(glass_mat)
+
+water = gr.cylinder('water', 4, 6)
+main:add_child(water)
+water:rotate('x', 90)
+water:translate(0, -1.88, -20)
+water:scale(0.5, 0.5, 0.5)
+water:set_material(water_mat)
+
+straw = gr.cylinder('straw', 0.1, 7)
+main:add_child(straw)
+straw:rotate('x', 90)
+straw:rotate('z', 25)
+straw:translate(-0.5, 1.2, -10)
+straw:set_material(red_checkered_mat)
+
+scene_root:add_child(main)
 
 light = gr.light({5, -2, 0}, {1, 1, 1}, {1, 0, 0})
 
 ambient = 0.3
 
 gr.render(scene_root, 'cylinder.png', 500, 500,
-	  {0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
+	  {0.0, 0.0, 5.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
 	  {ambient, ambient, ambient}, {light})
-
---[[
-for x = 1, 360 do
-	-- cylinder:rotate('z', 90)
-	cylinder:translate(0, 0, -20)
-	gr.render(scene_root, 'cylinder' .. string.format("%03d", x) .. '.png', 500, 500,
-	  {0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
-	  {ambient, ambient, ambient}, {light})
-	cylinder:translate(0, 0, 20)
-	-- cylinder:rotate('z', -5)
-	cylinder:rotate('x', -5)
-	-- cylinder:rotate('y', -5)
-end
---]]
-
--- ffmpeg -framerate 60 -i 'sphere%03d.png' out.gif
