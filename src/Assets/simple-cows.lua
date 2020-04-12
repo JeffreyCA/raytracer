@@ -3,9 +3,9 @@
 
 stone = gr.material({0.8, 0.7, 0.7}, {0.0, 0.0, 0.0}, 0)
 grass = gr.material({0.1, 0.7, 0.1}, {0.0, 0.0, 0.0}, 0)
-image_ground = gr.image_material('grass.png', {1, 1}, {0, 0, 0}, 0)
-checker_ground = gr.checker_material({0, 0, 0}, {1, 1, 1}, {0.5, 0.5, 0.5}, 50, 0)
-checker_cow = gr.checker_material({1, 0, 0}, {0, 1, 0}, {0.5, 0.5, 0.5}, 10, 0)
+image_ground = gr.image_material('grass.png', {1, 1}, {0, 0, 0}, 0, false, false)
+checker_ground = gr.checker_material({0, 0, 0}, {1, 1, 1}, {0.5, 0.5, 0.5}, 50, 0, false, false)
+checker_cow = gr.checker_material({1, 0, 0}, {0, 1, 0}, {0.5, 0.5, 0.5}, 10, 0, false, false)
 hide = gr.material({0.84, 0.6, 0.53}, {0.3, 0.3, 0.3}, 20)
 
 -- ##############################################

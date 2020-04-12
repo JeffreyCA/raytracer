@@ -63,7 +63,7 @@ vec3 StripedTexture::get_colour(float u, float v) {
     }
 }
 
-ImageTexture::ImageTexture(const std::string &filename, float width_factor, float height_factor): width_factor(width_factor), height_factor(height_factor) {
+ImageTexture::ImageTexture(const std::string &filename, float width_factor, float height_factor, bool flip_v) : width_factor(width_factor), height_factor(height_factor), flip_v(flip_v) {
     std::cout << "Loading texture " << filename << std::endl;
     image = Image::loadPng(filename);
 }
@@ -71,6 +71,9 @@ ImageTexture::ImageTexture(const std::string &filename, float width_factor, floa
 ImageTexture::~ImageTexture() {}
 
 vec3 ImageTexture::get_colour(float u, float v) {
+    if (flip_v) {
+        v = 1.0f - v;
+    }
     const uint image_width = image.width();
     const uint image_height = image.height();
 

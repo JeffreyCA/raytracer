@@ -6,11 +6,10 @@ black_mat = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
 gold_mat = gr.material({0.9, 0.8, 0.4}, {0.8, 0.8, 0.4}, 50)
 mirror_mat = gr.mirror_material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 100, 0)
 clear_mat = gr.clear_material({0.0, 0.0, 0.0}, {0.8, 0.8, 0.8}, 100, 0, 1.0)
-grass_mat = gr.image_material('grass.png', {1, 1}, {0, 0, 0}, 0)
-brick_mat = gr.image_material('brick.png', {1, 1}, {0, 0, 0}, 100, false)
-earth_mat = gr.image_material('earth.png', {1, 1}, {0, 0, 0}, 100, false)
-stars_mat = gr.image_material('stars.png', {1, 1}, {0, 0, 0}, 100, true)
-wood_mat = gr.image_material('wood.png', {1, 1}, {0.3, 0.3, 0.3}, 100, false)
+grass_mat = gr.image_material('grass.png', {1, 1}, {0, 0, 0}, 0, false, false)
+brick_mat = gr.image_material('brick.png', {1, 1}, {0, 0, 0}, 100, false, false)
+earth_mat = gr.image_material('earth.png', {1, 1}, {0, 0, 0}, 100, false, false)
+wood_mat = gr.image_material('wood.png', {1, 1}, {0.3, 0.3, 0.3}, 100, false, false)
 
 mat1 = gr.material({0.7, 1.0, 0.7}, {0.5, 0.7, 0.5}, 50)
 mat2 = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
@@ -79,67 +78,6 @@ cylinder:set_material(wood_mat)
 
 scene_root:add_child(spinning_top)
 
---[[
-x = 0.0 + math.cos(4 * math.rad(0)) * 2.0;
-y = -14.25 + math.sin(4 * math.rad(0)) * 1.75;
-spinning_top:rotate('x', -10)
-spinning_top:rotate('y', -(4 * math.rad(0) * 4 - 90))
-spinning_top:scale(0.3, 0.3, 0.4)
-spinning_top:translate(x, -5.0, y)
-gr.render(scene_root, 'room1.png', 500, 500,
-	{0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
-	{ambient, ambient, ambient}, {light_2})
-spinning_top:translate(-x, 5.0, -y)
-spinning_top:scale(1.0/0.3, 1.0/0.3, 1.0/0.4)
-spinning_top:rotate('y', (4 * math.rad(0) * 4 - 90))
-spinning_top:rotate('x', 10)
-
-i = 22
-x = 0.0 + math.cos(4 * math.rad(i)) * 2.0;
-y = -14.25 + math.sin(4 * math.rad(i)) * 1.75;
-spinning_top:rotate('x', -10)
-spinning_top:rotate('y', -(4 * math.rad(i) * 57 - 90))
-spinning_top:scale(0.3, 0.3, 0.4)
-spinning_top:translate(x, -5.0, y)
-gr.render(scene_root, 'room2.png', 500, 500,
-	{0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
-	{ambient, ambient, ambient}, {light_2})
-spinning_top:translate(-x, 5.0, -y)
-spinning_top:scale(1.0/0.3, 1.0/0.3, 1.0/0.4)
-spinning_top:rotate('y', (4 * math.rad(i) * 57 - 90))
-spinning_top:rotate('x', 10)
-
-i = 41
-x = 0.0 + math.cos(4 * math.rad(i)) * 2.0;
-y = -14.25 + math.sin(4 * math.rad(i)) * 1.75;
-spinning_top:rotate('x', -10)
-spinning_top:rotate('y', -(4 * math.rad(i) * 57 - 90))
-spinning_top:scale(0.3, 0.3, 0.4)
-spinning_top:translate(x, -5.0, y)
-gr.render(scene_root, 'room3.png', 500, 500,
-	{0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
-	{ambient, ambient, ambient}, {light_2})
-spinning_top:translate(-x, 5.0, -y)
-spinning_top:scale(1.0/0.3, 1.0/0.3, 1.0/0.4)
-spinning_top:rotate('y', (4 * math.rad(i) * 57 - 90))
-spinning_top:rotate('x', 10)
-
-i = 68
-x = 0.0 + math.cos(4 * math.rad(i)) * 2.0;
-y = -14.25 + math.sin(4 * math.rad(i)) * 1.75;
-spinning_top:rotate('x', -10)
-spinning_top:rotate('y', -(4 * math.rad(i) * 57 - 90))
-spinning_top:scale(0.3, 0.3, 0.4)
-spinning_top:translate(x, -5.0, y)
-gr.render(scene_root, 'room4.png', 500, 500,
-	{0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
-	{ambient, ambient, ambient}, {light_2})
-spinning_top:translate(-x, 5.0, -y)
-spinning_top:scale(1.0/0.3, 1.0/0.3, 1.0/0.4)
-spinning_top:rotate('y', (4 * math.rad(i) * 57 - 90))
-spinning_top:rotate('x', 10)
---]]
-
 light_1 = gr.light({0.0, -4.0, -3}, {0.7, 0.7, 0.7}, {2, 2, 0})
 light_2 = gr.light({0.0, 2.5, -10}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0})
 ambient = 0.3
@@ -154,7 +92,7 @@ for i = 1, 90 do
 	spinning_top:rotate('y', -(4 * math.rad(i) * 57 - 90))
 	spinning_top:scale(0.3, 0.3, 0.4)
 	spinning_top:translate(x, -4.7, y)
-	gr.render(scene_root, 'room' .. string.format("%03d", i) .. '.png', 500, 500,
+	gr.render(scene_root, 'top' .. string.format("%03d", i) .. '.png', 500, 500,
 		{0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
 		{ambient, ambient, ambient}, {light_1, light_2})
 	spinning_top:translate(-x, 4.7, -y)

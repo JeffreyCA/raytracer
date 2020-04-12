@@ -1,9 +1,9 @@
-grass_mat = gr.image_material('grass.png', {100, 100}, {0, 0, 0}, 0, true)
-road_mat = gr.image_material('road.png', {1, 15}, {0, 0, 0}, 100, true)
-orange_car_mat = gr.image_material('orange_car.png', {1, 1}, {0, 0, 0}, 100, false)
-police_car_mat = gr.image_material('police_car.png', {1, 1}, {0, 0, 0}, 100, false)
-barn_mat = gr.image_material('barn.png', {1, 1}, {0, 0, 0}, 100, false)
-tree_mat = gr.image_material('tree.png', {1, 1}, {0, 0, 0}, 100, false)
+grass_mat = gr.image_material('grass.png', {100, 100}, {0, 0, 0}, 0, false, true)
+road_mat = gr.image_material('road.png', {1, 15}, {0, 0, 0}, 100, false, true)
+orange_car_mat = gr.image_material('orange_car.png', {1, 1}, {0, 0, 0}, 100, true, false)
+police_car_mat = gr.image_material('police_car.png', {1, 1}, {0, 0, 0}, 100, true, false)
+barn_mat = gr.image_material('barn.png', {1, 1}, {0, 0, 0}, 100, true, false)
+tree_mat = gr.image_material('tree.png', {1, 1}, {0, 0, 0}, 100, true, false)
 
 scene_root = gr.node('root')
 

@@ -34,12 +34,13 @@ private:
 
 class ImageTexture : public Texture {
 public:
-    ImageTexture(const std::string &filename, float width_factor, float height_factor);
+    ImageTexture(const std::string &filename, float width_factor, float height_factor, bool flip_v);
     virtual ~ImageTexture();
     glm::vec3 get_colour(float u, float v) override;
 private:
     Image image;
     float width_factor;
     float height_factor;
+    bool flip_v;
 };
 

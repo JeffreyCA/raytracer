@@ -28,7 +28,7 @@ static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 150;
 
 static const float SHADOW_BIAS = 0.005f;
 static const int GLOSSY_REFLECTION_RAYS = 20;
-static const int GLOSSY_REFRACTION_RAYS = 10;
+static const int GLOSSY_REFRACTION_RAYS = 30;
 static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
 
@@ -283,7 +283,7 @@ vec3 ray_colour(Context &context, const Ray &ray, uint x, uint y, int max_hits) 
         vec3 colour;
         
         if (material->m_textured) {
-            colour = material->m_texture->get_colour(intersection.get_u(), 1.0f - intersection.get_v()) * context.ambient;
+            colour = material->m_texture->get_colour(intersection.get_u(), intersection.get_v()) * context.ambient;
         } else {
             colour = material->m_kd * context.ambient;
         }
@@ -406,7 +406,7 @@ vec3 compute_diffuse_specular(Context &context, const Ray &ray, const Intersecti
             // Diffuse
             vec3 diffuse_colour;
             if (mat->m_textured) {
-                diffuse_colour = mat->m_texture->get_colour(intersection.get_u(), 1.0f - intersection.get_v());
+                diffuse_colour = mat->m_texture->get_colour(intersection.get_u(), intersection.get_v());
             } else {
                 diffuse_colour = mat->m_kd;
             }
