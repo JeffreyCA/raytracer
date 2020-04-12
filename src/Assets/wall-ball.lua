@@ -1,9 +1,9 @@
 red_checkered_mat = gr.checker_material({1, 0, 0}, {1, 1, 1}, {0, 0, 0}, 10, 0)
-brick_mat = gr.image_material('brick.png', {0, 0, 0}, 100, false)
-basketball_mat = gr.image_material('basketball.png', {0, 0, 0}, 100, false)
-waffle_mat = gr.image_material('waffle.png', {0, 0, 0}, 100, false)
-vanilla_mat = gr.image_material('vanilla.png', {0, 0, 0}, 100, false)
-soup_mat = gr.image_material('campbells.png', {0, 0, 0}, 100, false)
+brick_mat = gr.image_material('brick.png', {1, 1}, {0, 0, 0}, 100, false)
+basketball_mat = gr.image_material('basketball.png', {1, 1}, {0, 0, 0}, 100, false)
+waffle_mat = gr.image_material('waffle.png', {1, 1}, {0, 0, 0}, 100, false)
+vanilla_mat = gr.image_material('vanilla.png', {1, 1}, {0, 0, 0}, 100, false)
+soup_mat = gr.image_material('campbells.png', {1, 1}, {0, 0, 0}, 100, false)
 
 scene_root = gr.node('root')
 
