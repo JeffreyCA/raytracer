@@ -1,14 +1,9 @@
-white_mat = gr.material({1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, 1)
-dim_white_mat = gr.material({0.8, 0.8, 0.8}, {0.0, 0.0, 0.0}, 1)
-red_mat = gr.material({1.0, 0.0, 0.0}, {0.5, 0.5, 0.5}, 1)
-blue_mat = gr.material({0.0, 0.0, 1.0}, {0.5, 0.5, 0.5}, 1)
-black_mat = gr.material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 10)
-gold_mat = gr.material({0.9, 0.8, 0.4}, {0.8, 0.8, 0.4}, 50)
-mirror_mat = gr.mirror_material({0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}, 100, 0)
-clear_mat = gr.clear_material({0.0, 0.0, 0.0}, {0.8, 0.8, 0.8}, 1, 1, 1.2)
-grass_mat = gr.image_material('grass.png', {0, 0, 0}, 0)
+red_checkered_mat = gr.checker_material({1, 0, 0}, {1, 1, 1}, {0, 0, 0}, 10, 0)
 brick_mat = gr.image_material('brick.png', {0, 0, 0}, 100, false)
 basketball_mat = gr.image_material('basketball.png', {0, 0, 0}, 100, false)
+waffle_mat = gr.image_material('waffle.png', {0, 0, 0}, 100, false)
+vanilla_mat = gr.image_material('vanilla.png', {0, 0, 0}, 100, false)
+soup_mat = gr.image_material('campbells.png', {0, 0, 0}, 100, false)
 
 scene_root = gr.node('root')
 
@@ -23,18 +18,12 @@ back_plane:translate(0, 0, -box_length)
 scene_root:add_child(back_plane)
 back_plane:set_material(brick_mat)
 
-behind_plane = gr.nh_plane('behind_plane')
-behind_plane:scale(box_width, box_height, 1)
-behind_plane:translate(0, 0, fudge)
-scene_root:add_child(behind_plane)
-behind_plane:set_material(white_mat)
-
 bottom_plane = gr.nh_plane('bottom_plane')
 bottom_plane:scale(box_width, box_length, 1)
 bottom_plane:rotate('X', 90)
 bottom_plane:translate(0, -box_height / 2.0 + fudge, -10.0)
 scene_root:add_child(bottom_plane)
-bottom_plane:set_material(grass_mat)
+bottom_plane:set_material(red_checkered_mat)
 
 left_plane = gr.nh_plane('left_plane')
 left_plane:scale(box_length, box_height, 1)
@@ -50,19 +39,48 @@ right_plane:translate(5, 0, -10.0)
 scene_root:add_child(right_plane)
 right_plane:set_material(brick_mat)
 
-s = gr.sphere('s')
-scene_root:add_child(s)
-s:rotate('x', -20)
-s:rotate('y', -20)
-s:translate(-1.0, -3.6, -14.0)
-s:set_material(basketball_mat)
+basketball = gr.sphere('basketball')
+scene_root:add_child(basketball)
+basketball:scale(1.2, 1.2, 1.2)
+basketball:rotate('x', -20)
+basketball:rotate('y', -20)
+basketball:translate(-3.0, -3.6, -16.0)
+basketball:set_material(basketball_mat)
+
+ice_cream = gr.node('ice_cream')
+
+cone = gr.cone('cone', 3)
+ice_cream:add_child(cone)
+cone:rotate('z', 180)
+cone:rotate('x', 90)
+cone:scale(0.2, 0.6, 0.2)
+cone:translate(1.05, -3, -6.0)
+cone:set_material(waffle_mat)
+
+cream = gr.sphere('cream')
+ice_cream:add_child(cream)
+cream:scale(0.6, 0.6, 0.6)
+cream:rotate('x', -20)
+cream:rotate('y', -20)
+cream:translate(1.08, -1.0, -6.1)
+cream:set_material(vanilla_mat)
+
+ice_cream:translate(0.5, 0, -0.5)
+scene_root:add_child(ice_cream)
+
+soup = gr.cylinder('soup', 1.0, 2.5)
+scene_root:add_child(soup)
+soup:scale(0.7, 0.7, 0.7)
+soup:rotate('x', -90)
+soup:rotate('y', 85)
+soup:translate(0, -3.8, -11.2)
+soup:set_material(soup_mat)
 
 light = gr.light({0, 4.0, -box_length / 2.0 - 2.0}, {0.5, 0.5, 0.5}, {5, 2, 0})
-light_2 = gr.light({-1.0, 2.0, -5}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0})
+light_2 = gr.light({-2, 0.0, -1}, {255 / 255, 251 / 255, 235 / 255}, {1, 0, 0})
 
-ambient = 0.3
+ambient = 0.4
 
--- root, image name, width, height, lookFrom, lookAt, up, fov, ambient, lights
 gr.render(scene_root, 'wall-ball.png', 500, 500,
 	  {0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
 	  {ambient, ambient, ambient}, {light_2})
