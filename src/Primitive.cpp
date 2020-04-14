@@ -280,9 +280,10 @@ Intersection NonhierIrregularBox::intersect(const Ray &ray) {
     }
 
     // Intersects
-    const vec3 inter_point = ray.get_point(tmin);
+    const float min_root = (tmin < 0 && tmax > 0) ? tmax : tmin;
+    const vec3 inter_point = ray.get_point(min_root);
     vec3 normal = get_normal(inter_point);
-    return Intersection(ray, normal, tmin, true);
+    return Intersection(ray, normal, min_root, true);
 }
 
 // http://ray-tracing-conept.blogspot.com/2015/01/ray-box-intersection-and-normal.html
