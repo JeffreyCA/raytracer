@@ -20,14 +20,14 @@ using namespace glm;
 
 static const bool PARALLEL = true;
 static const bool ADAPTIVE_SS = true; // If false, supersampling is disabled
-static const bool ADAPTIVE_SS_SHOW_PIXELS = false;
+static const bool ADAPTIVE_SS_SHOW_PIXELS = true;
 
 static const float ADAPTIVE_SS_DIM_FACTOR = 0.6f;
 static const float ADAPTIVE_SS_HALF_LIMIT = 0.0625f;
-static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 150;
+static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 100;
 
 static const float SHADOW_BIAS = 0.005f;
-static const int GLOSSY_REFLECTION_RAYS = 20;
+static const int GLOSSY_REFLECTION_RAYS = 50;
 static const int GLOSSY_REFRACTION_RAYS = 30;
 static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
@@ -164,7 +164,7 @@ void render(
                     vec3 colour;
                     if (ADAPTIVE_SS) {
                         const vec3 centre_colour = trace(c, x, y);
-                        colour = supersample(c, centre_colour, x, y, 0.5f);
+                        colour = supersample(c, centre_colour, x, y, 1.0f);
                     } else {
                         colour = trace(c, x, y);
                     }
@@ -241,7 +241,6 @@ vec3 supersample(Context &context, const vec3 &centre, float x, float y, float h
     vec3 top_right = trace(context, x + quarter, y - quarter);
     vec3 bottom_right = trace(context, x + quarter, y + quarter);
     vec3 bottom_left = trace(context, x - quarter, y + quarter);
-    const vec3 avg = (top_left + top_right + bottom_right + bottom_left) / 4.0f;
 
     bool ss = false;
 
@@ -266,9 +265,9 @@ vec3 supersample(Context &context, const vec3 &centre, float x, float y, float h
         if (ss) {
             return vec3(1, 0, 0);
         }
-        return ADAPTIVE_SS_DIM_FACTOR * (top_left + top_right + bottom_right + bottom_left) / 4.0f;
+        return ADAPTIVE_SS_DIM_FACTOR * (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
     } else {
-        return (top_left + top_right + bottom_right + bottom_left) / 4.0f;
+        return (top_left + top_right + bottom_right + bottom_left + centre) / 5.0f;
     }
 }
 
