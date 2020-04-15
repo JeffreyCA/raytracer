@@ -27,7 +27,7 @@ plane:set_material(black_mat)
 cow = gr.normal_mesh('cow', 'cow-normal.obj')
 cow:rotate('y', -65)
 cow:rotate('x', 5)
-cow:translate(-0.25, 0.5, -15.0)
+cow:translate(-0.25, 0.2, -15.0)
 scene_root:add_child(cow)
 cow:set_material(red_mat)
 
@@ -36,6 +36,6 @@ light = gr.light({0, 2.0, -5}, {100 / 255, 100 / 255, 100 / 255}, {1, 0, 0})
 ambient = 0.5
 
 gr.render(scene_root, 'cow-phong.png', 500, 500,
-	  {0.0, 0.0, 0.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
+	  {0.0, 0.0, -3.0}, {0, 0, -box_length / 2.0}, {0, 1, 0}, 50,
 	  {ambient, ambient, ambient}, {light})
 
