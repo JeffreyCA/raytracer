@@ -19,15 +19,15 @@ using namespace std;
 using namespace glm;
 
 static const bool PARALLEL = true;
-static const bool ADAPTIVE_SS = true; // If false, supersampling is disabled
-static const bool ADAPTIVE_SS_SHOW_PIXELS = true;
+static const bool ADAPTIVE_SS = false; // If false, supersampling is disabled
+static const bool ADAPTIVE_SS_SHOW_PIXELS = false;
 
 static const float ADAPTIVE_SS_DIM_FACTOR = 0.6f;
 static const float ADAPTIVE_SS_HALF_LIMIT = 0.0625f;
-static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 100;
+static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 150;
 
 static const float SHADOW_BIAS = 0.005f;
-static const int GLOSSY_REFLECTION_RAYS = 50;
+static const int GLOSSY_REFLECTION_RAYS = 30;
 static const int GLOSSY_REFRACTION_RAYS = 30;
 static const int MAX_HIT_THRESHOLD = 3;
 static const float d = 10.0f;
