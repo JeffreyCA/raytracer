@@ -19,17 +19,20 @@ using namespace std;
 using namespace glm;
 
 static const bool PARALLEL = true;
-static const bool ADAPTIVE_SS = false; // If false, supersampling is disabled
+static const bool ADAPTIVE_SS = true; // If false, supersampling is disabled
 static const bool ADAPTIVE_SS_SHOW_PIXELS = false;
+static const bool DEPTH_OF_FIELD = true;
 
 static const float ADAPTIVE_SS_DIM_FACTOR = 0.6f;
 static const float ADAPTIVE_SS_HALF_LIMIT = 0.0625f;
 static const float ADAPTIVE_SS_COLOUR_DIFF_THRESHOLD = 150;
+static const int DOF_SAMPLES = 100;
+static float DOF_APERTURE = 1 / 2.5f;
 
 static const float SHADOW_BIAS = 0.005f;
 static const int GLOSSY_REFLECTION_RAYS = 30;
 static const int GLOSSY_REFRACTION_RAYS = 30;
-static const int MAX_HIT_THRESHOLD = 3;
+static const int MAX_HIT_THRESHOLD = 4;
 static const float d = 10.0f;
 
 static const vec3 ZERO_VEC = vec3(0.0f);
@@ -39,6 +42,7 @@ static const vec3 SKY_BLUE = vec3(0, 161, 254) / 255.0f;
 static random_device rd;
 static default_random_engine mt(rd());
 static uniform_real_distribution<float> dist(0.0f, 1.0f);
+static uniform_real_distribution<float> dof_dist(-0.5f, 0.5f);
 
 vec3 hsv_to_rgb(int H, float S, float V);
 struct Context;
@@ -64,9 +68,10 @@ struct Context {
     const list<Light *> &lights;
     float nx;
     float ny;
+    float focal_dist;
     double fov;
 
-    Context(SceneNode *root, const mat4 &TSRT, const vec3 &look_from, const vec3 &ambient, const list<Light *> &lights, float nx, float ny, double fov): root(root), TSRT(TSRT), look_from(look_from), ambient(ambient), lights(lights), nx(nx), ny(ny), fov(fov) {}
+    Context(SceneNode *root, const mat4 &TSRT, const vec3 &look_from, const vec3 &ambient, const list<Light *> &lights, float nx, float ny, float focal_dist, double fov): root(root), TSRT(TSRT), look_from(look_from), ambient(ambient), lights(lights), nx(nx), ny(ny), focal_dist(focal_dist), fov(fov) {}
 };
 
 // https://www.compuphase.com/cmetric.htm
@@ -135,13 +140,13 @@ void render(
                          vec4(0, 0, 1, 0),
                          vec4(look_from.x, look_from.y, look_from.z, 1));
     const mat4 TSRT = T4 * R3 * S2 * T1;
+    const float focal_dist = glm::length(look_at - look_from);
     // Use Context struct to hold all constant rendering information
-    Context c(root, TSRT, look_from, ambient, lights, nx, ny, fovy);
+    Context c(root, TSRT, look_from, ambient, lights, nx, ny, focal_dist, fovy);
 
     if (PARALLEL) {
         uint cores = thread::hardware_concurrency();
         vector<future<void>> futures;
-        cout << endl;
 
         // Divide up work evenly for each core
         for (uint thread_id = 0; thread_id < cores; ++thread_id) {
@@ -217,8 +222,24 @@ vec3 trace(Context &context, float x, float y) {
     const mat4 &TSRT = context.TSRT;
     const vec3 &look_from = context.look_from;
     const vec4 world = TSRT * vec4(x, y, 0, 1);
-    const Ray ray = Ray(look_from, vec3(world) - look_from);
-    return ray_colour(context, ray, x, y, 0);
+    const float focal_dist = context.focal_dist;
+    Ray ray = Ray(look_from, vec3(world) - look_from);
+
+    if (DEPTH_OF_FIELD) {
+        const vec3 convergence_point = ray.origin + focal_dist * normalize(ray.direction);
+        vec3 colour = ZERO_VEC;
+        for (int i = 0; i < DOF_SAMPLES; i++) {
+            const vec2 random(dof_dist(mt), dof_dist(mt));
+            const vec3 aperture_offset = vec3(random.x * DOF_APERTURE, random.y * DOF_APERTURE, 0.0f);
+            ray.origin = look_from + aperture_offset;
+            ray.direction = normalize(convergence_point - ray.origin);
+            colour += ray_colour(context, ray, x, y, 0);
+        }
+        colour /= DOF_SAMPLES;
+        return colour;
+    } else {
+        return ray_colour(context, ray, x, y, 0);
+    }
 }
 
 /*

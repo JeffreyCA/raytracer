@@ -9,6 +9,7 @@ This was originally going to be my submission for the final project, but due to 
 * Triangle meshes (OBJ format), with support for vertex normals and texture coordinates
 * Reflection (glossy and non-glossy)
 * Refraction (glossy and non-glossy)
+* Depth of field
 * Texture mapping (planar, spherical, cylindrical, and custom meshes)
 * Adaptive supersampling
 * Animation (via Lua scripting and ffmpeg)
@@ -49,10 +50,10 @@ Some sample renders can be found in [`src/out/`](src/out/) and [`src/showcase/`]
 |:---:|:---:|:---:|
 |Primitives|Mesh (flat shading)|Mesh (Phong shading)|
 
-| ![Regular and glossy reflection](src/out/reflection.png)  | ![Regular refraction](src/out/refraction.png) | ![Glossy refraction](src/out/glossy-refraction.png) |
+| ![Regular and glossy reflection](src/out/reflection.png) | ![Regular refraction](src/out/refraction.png) | ![Glossy refraction](src/out/glossy-refraction.png) |
 |:---:|:---:|:---:|
 |Regular and glossy reflection|Regular refraction|Glossy refraction|
 
-| ![Texture mapping (primitives)](src/out/wall-ball.png) | ![Texture mapping (meshes)](src/out/highway.png) |
-|:---:|:---:|
-|Texture mapping (primitives)|Texture mapping (meshes)|
+| ![Depth of field](src/out/depth-of-field.png) | ![Texture mapping (primitives)](src/out/wall-ball.png) | ![Texture mapping (meshes)](src/out/highway.png) |
+|:---:|:---:|:---:|
+|Depth of field|Texture mapping (primitives)|Texture mapping (meshes)|
